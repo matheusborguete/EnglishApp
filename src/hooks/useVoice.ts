@@ -70,7 +70,8 @@ export function useVoice({
   // Whether the recording session is logically "open" (user hasn't stopped).
   const sessionActiveRef = useRef(false);
   // True between onstart and onend — used to detect the restart gap where
-  // recognition.stop() won't trigger onend (BUG 1 fix).
+  // recognition.stop() won't trigger onend, so stopListening can flush the
+  // buffer immediately without waiting for an event that will never arrive.
   const recognitionRunningRef = useRef(false);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -212,9 +213,8 @@ export function useVoice({
           setVoiceState("idle");
         }
       } else if (sessionActiveRef.current) {
-        // Natural utterance end — go idle first so handleMicPointerDown
-        // doesn't see "listening" and return early during the restart gap.
-        setVoiceState("idle");
+        // Natural utterance end — stay in "listening" so the restart is
+        // invisible (WhatsApp-style: mic stays active across pauses).
         scheduleRestart();
       } else {
         setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
