@@ -38,7 +38,16 @@ const SpeakerIcon = () => (
   </svg>
 );
 
-type InputMode = "text" | "voice";
+// How long a pointer must be held to count as "hold-to-record" vs a quick tap.
+const HOLD_THRESHOLD_MS = 350;
+
+// Speech rate is level-dependent so beginners can follow Emma more easily.
+// The debounce (conversation mode only) is a short fixed value — just enough
+// to stitch together a brief STT pause without making the conversation feel sluggish.
+const SPEECH_RATE = { beginner: 0.80, intermediate: 0.90, advanced: 1.00 } as const;
+const CONVERSATION_DEBOUNCE_MS = 400;
+
+type InputMode = "text" | "voice" | "conversation";
 
 interface Props { topicId: TopicId; level: Level; }
 
@@ -47,125 +56,69 @@ export function ConversationSession({ topicId, level }: Props) {
   const topic = getTopicById(topicId);
   const sessionId = useRef(generateId()).current;
 
+  // Single input-mode state instead of the previous (inputMode + conversationMode) pair.
   const [inputMode, setInputMode] = useState<InputMode>("voice");
-  const [conversationMode, setConversationMode] = useState(false);
   const [textInput, setTextInput] = useState("");
-
   const [showPhraseHelper, setShowPhraseHelper] = useState(false);
 
-  // Word lookup state
+  // Word-lookup state
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordInfo, setWordInfo] = useState<WordInfo | null>(null);
   const [wordLoading, setWordLoading] = useState(false);
   const [wordError, setWordError] = useState<string | null>(null);
 
-  const handleWordTap = useCallback(async (word: string) => {
-    setSelectedWord(word);
-    setWordInfo(null);
-    setWordError(null);
-    setWordLoading(true);
-    try {
-      const info = await lookupWord(word);
-      setWordInfo(info);
-    } catch {
-      setWordError("Não foi possível traduzir.");
-    } finally {
-      setWordLoading(false);
-    }
-  }, []);
-
-  const handleWordClose = useCallback(() => {
-    setSelectedWord(null);
-    setWordInfo(null);
-    setWordError(null);
-  }, []);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const openingSpokenRef = useRef(false);
 
-  /* ── Voice ── */
+  // ── Voice hook ────────────────────────────────────────────────────────────
+  // autoSend drives whether the hook auto-fires after silence (conversation
+  // mode) or waits for the user to call stopListening() explicitly (voice mode).
+  // Ref-forwarding pattern: handleTranscriptFinal and the auto-restart callback
+  // both need to call functions (sendMessage, startListening) that are defined
+  // after the hook call. We thread them through refs updated in effects.
+  const sendMessageRef = useRef<(text: string) => void>(() => {});
+  const startListeningRef = useRef<() => void>(() => {});
+  const inputModeRef = useRef<InputMode>(inputMode);
+  useEffect(() => { inputModeRef.current = inputMode; }, [inputMode]);
+
   const handleTranscriptFinal = useCallback((text: string) => {
-    sendMessage(text);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    sendMessageRef.current(text);
   }, []);
 
-  // handleSpeechEnd ref — updated after handleStartListening is defined
-  const handleSpeechEndRef = useRef<() => void>(() => {});
-
-  // Level-aware voice settings: beginners get a longer debounce (more time to
-  // finish a slow sentence) and a slower TTS rate (easier to follow Emma)
-  const VOICE_SETTINGS = {
-    beginner:     { finalDebounceMs: 1400, speechRate: 0.80 },
-    intermediate: { finalDebounceMs: 700,  speechRate: 0.90 },
-    advanced:     { finalDebounceMs: 250,  speechRate: 1.0  },
-  } as const;
-  const voiceSettings = VOICE_SETTINGS[level];
+  const handleSpeechEnd = useCallback(() => {
+    // Only auto-restart in conversation mode.
+    if (inputModeRef.current === "conversation") {
+      setTimeout(() => startListeningRef.current(), 300);
+    }
+  }, []);
 
   const {
-    voiceState, isSTTSupported, isTTSSupported,
-    transcript, startListening, stopListening,
-    speak, stopSpeaking, resetToIdle, unlockTTS,
+    voiceState,
+    isSTTSupported,
+    isTTSSupported,
+    transcript,
+    startListening,
+    stopListening,
+    speak,
+    stopSpeaking,
+    resetToIdle,
+    unlockTTS,
   } = useVoice({
     onTranscriptFinal: handleTranscriptFinal,
-    onSpeechEnd: () => handleSpeechEndRef.current(),
-    finalDebounceMs: voiceSettings.finalDebounceMs,
-    speechRate: voiceSettings.speechRate,
+    onSpeechEnd: handleSpeechEnd,
+    autoSend: inputMode === "conversation",
+    finalDebounceMs: CONVERSATION_DEBOUNCE_MS,
+    speechRate: SPEECH_RATE[level],
   });
 
-  const handleStartListening = useCallback(() => {
-    unlockTTS();
-    startListening();
-  }, [unlockTTS, startListening]);
+  // Keep refs in sync after hook values are available.
+  useEffect(() => { startListeningRef.current = () => { unlockTTS(); startListening(); }; },
+    [unlockTTS, startListening]);
 
-  // Dual-gesture mic: quick tap = toggle, hold = push-to-talk (release to send)
-  const HOLD_THRESHOLD_MS = 350;
-  const holdStartTimeRef = useRef<number | null>(null);
-  const isTapModeRef = useRef(false);
-
-  const handleMicPointerDown = useCallback(() => {
-    if (voiceState !== "idle") return; // covers listening, speaking, processing
-    isTapModeRef.current = false;
-    holdStartTimeRef.current = Date.now();
-    handleStartListening();
-  }, [voiceState, handleStartListening]);
-
-  const handleMicPointerUp = useCallback(() => {
-    if (voiceState !== "listening" || holdStartTimeRef.current === null) return;
-    const elapsed = Date.now() - holdStartTimeRef.current;
-    holdStartTimeRef.current = null;
-    if (elapsed >= HOLD_THRESHOLD_MS) {
-      // Hold gesture completed → stop on release
-      isTapModeRef.current = false;
-      stopListening();
-    } else {
-      // Quick tap → stay recording, wait for second tap
-      isTapModeRef.current = true;
-    }
-  }, [voiceState, stopListening]);
-
-  const handleMicClick = useCallback(() => {
-    if (isTapModeRef.current) {
-      // This onClick belongs to the same gesture that started recording — ignore
-      isTapModeRef.current = false;
-      return;
-    }
-    if (voiceState === "listening") {
-      // Second tap in toggle mode → stop and send
-      stopListening();
-    }
-  }, [voiceState, stopListening]);
-
-  // Keep the ref up to date
-  useEffect(() => {
-    handleSpeechEndRef.current = () => {
-      if (conversationMode) setTimeout(() => handleStartListening(), 300);
-    };
-  }, [conversationMode, handleStartListening]);
-
-  // Track which message is currently being spoken (for the play button highlight)
+  // ── Chat hook ─────────────────────────────────────────────────────────────
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
 
-  /* ── Chat ── */
   const handleResponseDone = useCallback((text: string, msgId?: string) => {
     resetToIdle();
     if (msgId) setSpeakingMsgId(msgId);
@@ -178,6 +131,10 @@ export function ConversationSession({ topicId, level }: Props) {
     sendMessage, endSession,
   } = useChat({ topicId, level, sessionId, onResponseDone: handleResponseDone });
 
+  // Wire sendMessage into the ref so handleTranscriptFinal can call it.
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
+
+  // ── Phrase helper ─────────────────────────────────────────────────────────
   const handleUsePhrase = useCallback((phrase: string) => {
     setShowPhraseHelper(false);
     if (inputMode === "text") {
@@ -189,48 +146,133 @@ export function ConversationSession({ topicId, level }: Props) {
     }
   }, [inputMode, unlockTTS, sendMessage]);
 
-  /* ── Auto-scroll ── */
+  // ── Word lookup ───────────────────────────────────────────────────────────
+  const handleWordTap = useCallback(async (word: string) => {
+    setSelectedWord(word);
+    setWordInfo(null);
+    setWordError(null);
+    setWordLoading(true);
+    try {
+      setWordInfo(await lookupWord(word));
+    } catch {
+      setWordError("Não foi possível traduzir.");
+    } finally {
+      setWordLoading(false);
+    }
+  }, []);
+
+  const handleWordClose = useCallback(() => {
+    setSelectedWord(null);
+    setWordInfo(null);
+    setWordError(null);
+  }, []);
+
+  // ── Mode switching ────────────────────────────────────────────────────────
+  const enterVoiceMode = useCallback(() => {
+    stopListening();
+    stopSpeaking();
+    setInputMode("voice");
+  }, [stopListening, stopSpeaking]);
+
+  const enterConversationMode = useCallback(() => {
+    setInputMode("conversation");
+    // Start listening after the state (and autoSend ref) update propagates.
+    // The 80ms delay inside startListening gives React time to commit.
+    startListeningRef.current();
+  }, []);
+
+  const enterTextMode = useCallback(() => {
+    stopListening();
+    stopSpeaking();
+    setInputMode("text");
+  }, [stopListening, stopSpeaking]);
+
+  const exitConversationMode = useCallback(() => {
+    stopListening();
+    stopSpeaking();
+    setInputMode("voice");
+  }, [stopListening, stopSpeaking]);
+
+  // ── Manual voice: dual-gesture mic (hold OR tap-toggle) ───────────────────
+  // holdStartTimeRef tracks when pointer went down so we can distinguish a
+  // hold gesture (>= HOLD_THRESHOLD_MS, release sends) from a tap (< threshold,
+  // start recording; second tap sends).
+  const holdStartTimeRef = useRef<number | null>(null);
+  // True while the current recording was started by a quick tap (toggle mode).
+  const isTapModeRef = useRef(false);
+
+  const handleMicPointerDown = useCallback(() => {
+    if (voiceState !== "idle") return;
+    isTapModeRef.current = false;
+    holdStartTimeRef.current = Date.now();
+    unlockTTS();
+    startListening();
+  }, [voiceState, unlockTTS, startListening]);
+
+  const handleMicPointerUp = useCallback(() => {
+    if (voiceState !== "listening" || holdStartTimeRef.current === null) return;
+    const elapsed = Date.now() - holdStartTimeRef.current;
+    holdStartTimeRef.current = null;
+    if (elapsed >= HOLD_THRESHOLD_MS) {
+      // Hold gesture → stop on release.
+      isTapModeRef.current = false;
+      stopListening();
+    } else {
+      // Quick tap → enter toggle mode; wait for a second tap to stop.
+      isTapModeRef.current = true;
+    }
+  }, [voiceState, stopListening]);
+
+  const handleMicClick = useCallback(() => {
+    if (isTapModeRef.current) {
+      // This onClick is from the same gesture that started recording — skip.
+      isTapModeRef.current = false;
+      return;
+    }
+    if (voiceState === "listening") {
+      // Second tap in toggle mode → stop and send.
+      stopListening();
+    }
+  }, [voiceState, stopListening]);
+
+  // ── Side effects ──────────────────────────────────────────────────────────
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* ── Speak opening message ── */
   useEffect(() => {
     if (isTTSSupported && !openingSpokenRef.current && messages.length === 1) {
       openingSpokenRef.current = true;
-      // Small delay so the browser TTS engine is fully ready
       setTimeout(() => speak(messages[0].content), 500);
     }
   }, [isTTSSupported, messages, speak]);
 
-  // Clear speaking highlight when TTS stops
   useEffect(() => {
     if (voiceState !== "speaking") setSpeakingMsgId(null);
   }, [voiceState]);
 
-  /* ── Text submit ── */
+  // ── Text submit ───────────────────────────────────────────────────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const v = textInput.trim();
     if (!v || isLoading) return;
-    unlockTTS(); // Must be synchronous inside the click handler to unlock iOS
+    unlockTTS();
     sendMessage(v);
     setTextInput("");
     inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e as unknown as React.FormEvent); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextInput(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-  };
-
-  const handleEnd = () => {
-    if (window.confirm("Encerrar e ver correções?")) { stopSpeaking(); endSession(); }
   };
 
   const handleSpeakMessage = useCallback((msgId: string, content: string) => {
@@ -243,8 +285,20 @@ export function ConversationSession({ topicId, level }: Props) {
     }
   }, [voiceState, speakingMsgId, stopSpeaking, unlockTTS, speak]);
 
-  const userCount = messages.filter((m) => m.role === "user").length;
+  const handleEnd = () => {
+    if (window.confirm("Encerrar e ver correções?")) {
+      stopSpeaking();
+      endSession();
+    }
+  };
 
+  // ── Derived state ─────────────────────────────────────────────────────────
+  const isListening   = voiceState === "listening";
+  const isSpeaking    = voiceState === "speaking";
+  const isProcessing  = voiceState === "processing";
+  const userCount     = messages.filter((m) => m.role === "user").length;
+
+  // ── End screen ────────────────────────────────────────────────────────────
   if (hasEnded) {
     return (
       <CorrectionsPanel
@@ -256,16 +310,10 @@ export function ConversationSession({ topicId, level }: Props) {
     );
   }
 
-  /* ── Voice mode mic button state ── */
-  const micBusy = isLoading || voiceState === "speaking";
-  const isListening = voiceState === "listening";
-  const isSpeaking = voiceState === "speaking";
-  const isProcessing = voiceState === "processing";
-
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-50">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{topic.emoji}</span>
@@ -281,20 +329,23 @@ export function ConversationSession({ topicId, level }: Props) {
         </button>
       </header>
 
-      {/* Chat */}
+      {/* ── Chat ── */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {messages.map((msg) => (
           <ChatBubble
             key={msg.id}
             message={msg}
             onWordTap={msg.role === "assistant" ? handleWordTap : undefined}
-            onSpeak={msg.role === "assistant" && !msg.isStreaming && msg.content
-              ? () => handleSpeakMessage(msg.id, msg.content)
-              : undefined}
-            isSpeaking={speakingMsgId === msg.id && voiceState === "speaking"}
+            onSpeak={
+              msg.role === "assistant" && !msg.isStreaming && msg.content
+                ? () => handleSpeakMessage(msg.id, msg.content)
+                : undefined
+            }
+            isSpeaking={speakingMsgId === msg.id && isSpeaking}
           />
         ))}
 
+        {/* Live transcript preview while recording */}
         {isListening && transcript && (
           <div className="flex justify-end mb-4">
             <div className="bg-sky-50 border border-sky-200 text-sky-700 px-4 py-2 rounded-2xl text-sm italic max-w-[78%]">
@@ -305,7 +356,7 @@ export function ConversationSession({ topicId, level }: Props) {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-xs text-center my-2 mx-auto max-w-sm">
-            {error.slice(0, 100)}
+            {error.slice(0, 120)}
           </div>
         )}
         <div ref={chatEndRef} />
@@ -314,24 +365,30 @@ export function ConversationSession({ topicId, level }: Props) {
       {/* ── Input area ── */}
       <div className="flex-shrink-0 bg-white border-t border-gray-100 safe-area-bottom">
 
-        {/* Mode tabs — only show if STT supported */}
+        {/* Mode tabs */}
         {isSTTSupported && (
           <div className="flex border-b border-gray-100">
             <button
-              onClick={() => { setInputMode("voice"); setConversationMode(false); }}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${inputMode === "voice" && !conversationMode ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"}`}
+              onClick={enterVoiceMode}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                inputMode === "voice" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
+              }`}
             >
               🎙️ Voz
             </button>
             <button
-              onClick={() => { setInputMode("voice"); setConversationMode(true); if (!isListening && !micBusy) handleStartListening(); }}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${conversationMode ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"}`}
+              onClick={enterConversationMode}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                inputMode === "conversation" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
+              }`}
             >
               💬 Conversa
             </button>
             <button
-              onClick={() => { setInputMode("text"); setConversationMode(false); stopListening(); }}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${inputMode === "text" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"}`}
+              onClick={enterTextMode}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                inputMode === "text" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
+              }`}
             >
               ⌨️ Texto
             </button>
@@ -340,50 +397,35 @@ export function ConversationSession({ topicId, level }: Props) {
 
         <div className="px-4 py-4">
 
-          {/* ── CONVERSATION MODE ── */}
-          {conversationMode && (
-            <div className="flex flex-col items-center gap-3">
-              <ConversationModeButton
-                voiceState={voiceState}
-                isLoading={isLoading}
-                onStop={() => { setConversationMode(false); stopListening(); stopSpeaking(); }}
-              />
-              <p className="text-xs text-gray-400 text-center">
-                {isListening ? "Te ouvindo... fale em inglês"
-                  : isSpeaking ? "Emma está falando — toque para parar"
-                  : isLoading || isProcessing ? "Processando..."
-                  : "Aguardando..."}
-              </p>
-              {isSpeaking && (
-                <button onClick={() => { stopSpeaking(); setTimeout(() => startListening(), 200); }} className="text-xs text-sky-500 underline">
-                  Pular fala da Emma
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* ── VOICE MANUAL MODE ── */}
-          {inputMode === "voice" && !conversationMode && isSTTSupported && (
+          {/* ══════════════════════════════════════════════════════════════
+              VOICE MODE — user controls every send via hold or tap-toggle.
+              autoSend = false in useVoice, so no debounce auto-fires.
+          ══════════════════════════════════════════════════════════════ */}
+          {inputMode === "voice" && isSTTSupported && (
             <div className="flex flex-col items-center gap-4">
-              {/* Big mic button: quick tap = toggle, hold = push-to-talk */}
               <button
                 onPointerDown={handleMicPointerDown}
                 onPointerUp={handleMicPointerUp}
                 onClick={handleMicClick}
-                disabled={micBusy && !isListening}
-                className={`w-24 h-24 rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95 shadow-xl select-none touch-none
-                  ${isListening
+                disabled={isLoading || (isSpeaking && !isListening)}
+                className={[
+                  "w-24 h-24 rounded-full flex items-center justify-center text-white",
+                  "transition-all duration-200 active:scale-95 shadow-xl select-none touch-none",
+                  isListening
                     ? "bg-red-500 ring-8 ring-red-200 animate-pulse"
                     : isSpeaking
-                    ? "bg-purple-500 opacity-40"
+                    ? "bg-purple-500 opacity-50"
                     : isLoading || isProcessing
                     ? "bg-amber-400"
-                    : "bg-sky-500 hover:bg-sky-600"}`}
+                    : "bg-sky-500 hover:bg-sky-600",
+                ].join(" ")}
               >
                 {isLoading || isProcessing
                   ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : isSpeaking ? <SpeakerIcon />
-                  : isListening ? <StopIcon />
+                  : isSpeaking
+                  ? <SpeakerIcon />
+                  : isListening
+                  ? <StopIcon />
                   : <MicIcon className="w-10 h-10" />}
               </button>
 
@@ -397,10 +439,6 @@ export function ConversationSession({ topicId, level }: Props) {
                   : <span className="text-sky-600">Toque · ou segure e solte</span>}
               </p>
 
-              {isListening && transcript && (
-                <p className="text-xs text-gray-400 italic text-center max-w-xs">"{transcript}"</p>
-              )}
-
               {isSpeaking && (
                 <button onClick={stopSpeaking} className="text-xs text-sky-500 underline">
                   Parar fala da Emma
@@ -409,7 +447,40 @@ export function ConversationSession({ topicId, level }: Props) {
             </div>
           )}
 
-          {/* ── TEXT MODE ── */}
+          {/* ══════════════════════════════════════════════════════════════
+              CONVERSATION MODE — mic restarts automatically after each
+              Emma response. autoSend = true, debounce drives the send.
+          ══════════════════════════════════════════════════════════════ */}
+          {inputMode === "conversation" && (
+            <div className="flex flex-col items-center gap-3">
+              <ConversationModeButton
+                voiceState={voiceState}
+                isLoading={isLoading}
+                onStop={exitConversationMode}
+              />
+              <p className="text-xs text-gray-400 text-center">
+                {isListening
+                  ? "Te ouvindo… fale em inglês"
+                  : isSpeaking
+                  ? "Emma está falando"
+                  : isLoading || isProcessing
+                  ? "Processando…"
+                  : "Aguardando…"}
+              </p>
+              {isSpeaking && (
+                <button
+                  onClick={() => { stopSpeaking(); setTimeout(() => startListeningRef.current(), 200); }}
+                  className="text-xs text-sky-500 underline"
+                >
+                  Pular fala da Emma
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TEXT MODE
+          ══════════════════════════════════════════════════════════════ */}
           {inputMode === "text" && (
             <form onSubmit={handleSubmit} className="flex items-end gap-2">
               <textarea
@@ -417,7 +488,7 @@ export function ConversationSession({ topicId, level }: Props) {
                 value={textInput}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Escreva sua mensagem em inglês..."
+                placeholder="Escreva sua mensagem em inglês…"
                 disabled={isLoading}
                 rows={1}
                 className="flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent placeholder:text-gray-300 disabled:opacity-50 bg-gray-50"
@@ -435,7 +506,7 @@ export function ConversationSession({ topicId, level }: Props) {
             </form>
           )}
 
-          {/* ── Phrase helper trigger ── */}
+          {/* Phrase helper button — visible in all modes */}
           <div className="mt-3 flex justify-center">
             <button
               onClick={() => setShowPhraseHelper(true)}
@@ -448,7 +519,7 @@ export function ConversationSession({ topicId, level }: Props) {
         </div>
       </div>
 
-      {/* Word lookup card */}
+      {/* ── Overlays ── */}
       {selectedWord && (
         <WordCard
           word={selectedWord}
@@ -458,8 +529,6 @@ export function ConversationSession({ topicId, level }: Props) {
           onClose={handleWordClose}
         />
       )}
-
-      {/* Phrase helper */}
       {showPhraseHelper && (
         <PhraseHelper
           topicId={topicId}
@@ -471,7 +540,7 @@ export function ConversationSession({ topicId, level }: Props) {
   );
 }
 
-/* ── Conversation Mode Big Button ── */
+/* ── Conversation Mode Button ──────────────────────────────────────────────── */
 function ConversationModeButton({
   voiceState, isLoading, onStop,
 }: {
@@ -480,12 +549,11 @@ function ConversationModeButton({
   onStop: () => void;
 }) {
   const isListening = voiceState === "listening";
-  const isSpeaking = voiceState === "speaking";
-  const busy = isLoading || voiceState === "processing";
+  const isSpeaking  = voiceState === "speaking";
+  const busy        = isLoading || voiceState === "processing";
 
   return (
     <div className="relative flex items-center justify-center">
-      {/* Ripple rings */}
       {isListening && (
         <>
           <span className="absolute w-28 h-28 rounded-full bg-red-200 opacity-40 animate-ping" />
@@ -495,14 +563,21 @@ function ConversationModeButton({
       {isSpeaking && (
         <span className="absolute w-28 h-28 rounded-full bg-purple-200 opacity-40 animate-pulse" />
       )}
-
       <button
         onClick={onStop}
-        className={`relative w-20 h-20 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300
-          ${isListening ? "bg-red-500" : isSpeaking ? "bg-purple-500" : busy ? "bg-amber-400" : "bg-sky-500"}`}
-        aria-label="Parar modo conversa"
+        className={[
+          "relative w-20 h-20 rounded-full flex items-center justify-center",
+          "text-white shadow-xl transition-all duration-300",
+          isListening ? "bg-red-500"
+            : isSpeaking ? "bg-purple-500"
+            : busy ? "bg-amber-400"
+            : "bg-sky-500",
+        ].join(" ")}
+        aria-label="Sair do modo conversa"
       >
-        {isSpeaking ? <SpeakerIcon /> : isListening ? <MicIcon /> : busy
+        {isSpeaking
+          ? <SpeakerIcon />
+          : busy
           ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
           : <MicIcon />}
       </button>
