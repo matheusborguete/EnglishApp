@@ -9,6 +9,8 @@ import { generateId } from "@/lib/storage";
 import { getTopicById } from "@/lib/topics";
 import { ChatBubble } from "./ChatBubble";
 import { CorrectionsPanel } from "./CorrectionsPanel";
+import { WordCard } from "./WordCard";
+import { lookupWord, type WordInfo } from "@/lib/wordLookup";
 
 /* ── Icons ── */
 const SendIcon = () => (
@@ -47,6 +49,33 @@ export function ConversationSession({ topicId, level }: Props) {
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [conversationMode, setConversationMode] = useState(false);
   const [textInput, setTextInput] = useState("");
+
+  // Word lookup state
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [wordInfo, setWordInfo] = useState<WordInfo | null>(null);
+  const [wordLoading, setWordLoading] = useState(false);
+  const [wordError, setWordError] = useState<string | null>(null);
+
+  const handleWordTap = useCallback(async (word: string) => {
+    setSelectedWord(word);
+    setWordInfo(null);
+    setWordError(null);
+    setWordLoading(true);
+    try {
+      const info = await lookupWord(word);
+      setWordInfo(info);
+    } catch {
+      setWordError("Não foi possível traduzir.");
+    } finally {
+      setWordLoading(false);
+    }
+  }, []);
+
+  const handleWordClose = useCallback(() => {
+    setSelectedWord(null);
+    setWordInfo(null);
+    setWordError(null);
+  }, []);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const openingSpokenRef = useRef(false);
@@ -161,7 +190,13 @@ export function ConversationSession({ topicId, level }: Props) {
 
       {/* Chat */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
+        {messages.map((msg) => (
+          <ChatBubble
+            key={msg.id}
+            message={msg}
+            onWordTap={msg.role === "assistant" ? handleWordTap : undefined}
+          />
+        ))}
 
         {isListening && transcript && (
           <div className="flex justify-end mb-4">
@@ -285,6 +320,17 @@ export function ConversationSession({ topicId, level }: Props) {
 
         </div>
       </div>
+
+      {/* Word lookup card */}
+      {selectedWord && (
+        <WordCard
+          word={selectedWord}
+          info={wordInfo}
+          loading={wordLoading}
+          error={wordError}
+          onClose={handleWordClose}
+        />
+      )}
     </div>
   );
 }

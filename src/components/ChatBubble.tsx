@@ -4,6 +4,7 @@ import type { Message } from "@/types";
 
 interface ChatBubbleProps {
   message: Message;
+  onWordTap?: (word: string) => void;
 }
 
 function TypingIndicator() {
@@ -20,11 +21,53 @@ function TypingIndicator() {
   );
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
+/** Renders AI text with each word as a tappable button. */
+function ClickableText({
+  text,
+  onWordTap,
+}: {
+  text: string;
+  onWordTap: (word: string) => void;
+}) {
+  // Split preserving spaces and line breaks
+  const tokens = text.split(/(\s+)/);
+
+  return (
+    <>
+      {tokens.map((token, i) => {
+        // Whitespace — render as-is
+        if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
+
+        // Strip leading/trailing punctuation to get the pure word
+        const word = token.replace(/^[^a-zA-Z']+|[^a-zA-Z']+$/g, "");
+        if (!word) return <span key={i}>{token}</span>;
+
+        // Prefix/suffix punctuation preserved visually
+        const prefix = token.slice(0, token.indexOf(word[0]));
+        const suffix = token.slice(token.indexOf(word[0]) + word.length);
+
+        return (
+          <span key={i}>
+            {prefix}
+            <button
+              onClick={() => onWordTap(word)}
+              className="underline decoration-dotted decoration-sky-300 underline-offset-2 hover:text-sky-600 active:bg-sky-100 rounded transition-colors cursor-pointer"
+              aria-label={`Translate: ${word}`}
+            >
+              {word}
+            </button>
+            {suffix}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+export function ChatBubble({ message, onWordTap }: ChatBubbleProps) {
   const isAI = message.role === "assistant";
   const isEmpty = !message.content && message.isStreaming;
 
-  // Hide the corrections JSON block from the chat UI
   const displayContent = message.content
     .replace(/<corrections>[\s\S]*?<\/corrections>/g, "")
     .trim();
@@ -46,6 +89,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       >
         {isEmpty ? (
           <TypingIndicator />
+        ) : isAI && !message.isStreaming && onWordTap ? (
+          // Completed AI message — words are tappable
+          <>
+            <ClickableText text={displayContent} onWordTap={onWordTap} />
+            <p className="text-[10px] text-gray-300 mt-1.5">Toque em uma palavra para ver o significado</p>
+          </>
         ) : (
           <>
             {displayContent}

@@ -31,3 +31,13 @@ body {
 .safe-area-bottom {
   padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
