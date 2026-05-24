@@ -66,6 +66,8 @@ export function useVoice({
   // Accumulated final-result segments and the conversation-mode debounce timer.
   const finalBufferRef = useRef<string[]>([]);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Prevents onend from double-sending after fireTranscript already sent.
+  const transcriptFiredRef = useRef(false);
 
   /**
    * Sends whatever is in the buffer. Stops the recognition so it doesn't keep
@@ -81,7 +83,7 @@ export function useVoice({
     finalBufferRef.current = [];
     setTranscript("");
     if (text) {
-      // Stop recognition; onend will see an empty buffer and won't double-send.
+      transcriptFiredRef.current = true; // tell onend not to double-send
       recognitionRef.current?.stop();
       setVoiceState("processing");
       onTranscriptRef.current(text);
@@ -134,20 +136,23 @@ export function useVoice({
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      let final = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      // Read the ENTIRE results list as the canonical source of truth.
+      // Some Android engines re-fire the same resultIndex with a longer text
+      // (e.g. "I" → "I spend" → "I spend my day") instead of appending new
+      // segments. Iterating from 0 and REPLACING the buffer avoids duplicates.
+      let finalText = "";
+      let interimText = "";
+      for (let i = 0; i < event.results.length; i++) {
         const r = event.results[i];
-        if (r.isFinal) final += r[0].transcript;
-        else interim += r[0].transcript;
+        if (r.isFinal) finalText += (finalText ? " " : "") + r[0].transcript.trim();
+        else interimText += r[0].transcript;
       }
 
-      if (final.trim()) {
-        finalBufferRef.current.push(final.trim());
+      if (finalText) {
+        // Replace, not push — the full list already contains the correct text.
+        finalBufferRef.current = [finalText];
 
         // CONVERSATION MODE ONLY: schedule auto-send after silence.
-        // In manual mode (autoSend = false) the buffer accumulates until
-        // stopListening() is called and onend flushes it.
         if (autoSendRef.current) {
           if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = setTimeout(
@@ -157,13 +162,10 @@ export function useVoice({
         }
       }
 
-      // Show the full accumulated text so the display never shrinks.
-      // Finals are in the buffer; interim is the in-progress segment.
-      const accumulated = finalBufferRef.current.join(" ");
-      const display = interim
-        ? (accumulated ? accumulated + " " + interim : interim)
-        : accumulated;
-      setTranscript(display);
+      // Show finals + current in-progress interim so the display never shrinks.
+      setTranscript(interimText
+        ? (finalText ? finalText + " " + interimText : interimText)
+        : finalText);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -178,14 +180,21 @@ export function useVoice({
     };
 
     recognition.onend = () => {
-      // Cancel any pending debounce (shouldn't happen but be safe).
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
-      // Flush whatever is in the buffer. In manual mode this is the primary
-      // send path. In conversation mode fireTranscript() clears the buffer
-      // before calling stop(), so this branch is usually a no-op.
+
+      // fireTranscript() already sent and flagged this — don't double-send.
+      if (transcriptFiredRef.current) {
+        transcriptFiredRef.current = false;
+        finalBufferRef.current = [];
+        setTranscript("");
+        setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
+        return;
+      }
+
+      // Manual stop path: flush whatever accumulated in the buffer.
       const buffered = finalBufferRef.current.join(" ").trim();
       finalBufferRef.current = [];
       setTranscript("");
@@ -193,7 +202,6 @@ export function useVoice({
         setVoiceState("processing");
         onTranscriptRef.current(buffered);
       } else {
-        // Don't clobber "processing" or "speaking" set by fireTranscript/speak.
         setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
       }
     };
@@ -210,10 +218,9 @@ export function useVoice({
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
-    // Cancel TTS so we don't record Emma's own voice.
     synthRef.current?.cancel();
-    // Reset buffer state.
     finalBufferRef.current = [];
+    transcriptFiredRef.current = false;
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
