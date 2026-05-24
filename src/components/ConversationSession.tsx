@@ -10,6 +10,7 @@ import { getTopicById } from "@/lib/topics";
 import { ChatBubble } from "./ChatBubble";
 import { CorrectionsPanel } from "./CorrectionsPanel";
 import { WordCard } from "./WordCard";
+import { PhraseHelper } from "./PhraseHelper";
 import { lookupWord, type WordInfo } from "@/lib/wordLookup";
 
 /* ── Icons ── */
@@ -49,6 +50,8 @@ export function ConversationSession({ topicId, level }: Props) {
   const [inputMode, setInputMode] = useState<InputMode>("voice");
   const [conversationMode, setConversationMode] = useState(false);
   const [textInput, setTextInput] = useState("");
+
+  const [showPhraseHelper, setShowPhraseHelper] = useState(false);
 
   // Word lookup state
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
@@ -125,6 +128,17 @@ export function ConversationSession({ topicId, level }: Props) {
     hasEnded, corrections, sessionSummary,
     sendMessage, endSession,
   } = useChat({ topicId, level, sessionId, onResponseDone: handleResponseDone });
+
+  const handleUsePhrase = useCallback((phrase: string) => {
+    setShowPhraseHelper(false);
+    if (inputMode === "text") {
+      setTextInput(phrase);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } else {
+      unlockTTS();
+      sendMessage(phrase);
+    }
+  }, [inputMode, unlockTTS, sendMessage]);
 
   /* ── Auto-scroll ── */
   useEffect(() => {
@@ -352,6 +366,16 @@ export function ConversationSession({ topicId, level }: Props) {
             </form>
           )}
 
+          {/* ── Phrase helper trigger ── */}
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={() => setShowPhraseHelper(true)}
+              className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full hover:bg-amber-100 active:scale-95 transition-all"
+            >
+              💡 Não sei como falar
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -363,6 +387,15 @@ export function ConversationSession({ topicId, level }: Props) {
           loading={wordLoading}
           error={wordError}
           onClose={handleWordClose}
+        />
+      )}
+
+      {/* Phrase helper */}
+      {showPhraseHelper && (
+        <PhraseHelper
+          topicId={topicId}
+          onUsePhrase={handleUsePhrase}
+          onClose={() => setShowPhraseHelper(false)}
         />
       )}
     </div>

@@ -19,6 +19,8 @@ export interface Topic {
   difficulty: Level;
   starterMessage: string;
   vocabularyHints: string[];
+  /** Ready-made phrases for beginners to tap and send */
+  phraseSuggestions: string[];
 }
 
 export interface Message {
