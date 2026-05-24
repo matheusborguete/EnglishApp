@@ -112,18 +112,22 @@ export function ChatBubble({ message, onWordTap, onSpeak, isSpeaking }: ChatBubb
           )}
         </div>
 
-        {/* Play / stop button — only on completed AI messages */}
-        {isComplete && onSpeak && (
+        {/* Play / stop button — AI messages and user messages (pronunciation) */}
+        {onSpeak && !message.isStreaming && message.content && (
           <button
             onClick={onSpeak}
-            className={`self-start flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+            className={[
+              "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all",
+              isAI ? "self-start" : "self-end",
               isSpeaking
                 ? "bg-purple-100 text-purple-600 border border-purple-200"
-                : "bg-gray-100 text-gray-500 border border-gray-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200"
-            }`}
+                : isAI
+                ? "bg-gray-100 text-gray-500 border border-gray-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200"
+                : "bg-sky-100 text-sky-700 border border-sky-200 hover:bg-sky-200",
+            ].join(" ")}
           >
             {isSpeaking ? <StopIcon /> : <PlayIcon />}
-            {isSpeaking ? "Parar" : "Ouvir Emma"}
+            {isSpeaking ? "Parar" : isAI ? "Ouvir Emma" : "Ouvir pronúncia"}
           </button>
         )}
       </div>

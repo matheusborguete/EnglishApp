@@ -337,7 +337,7 @@ export function ConversationSession({ topicId, level }: Props) {
             message={msg}
             onWordTap={msg.role === "assistant" ? handleWordTap : undefined}
             onSpeak={
-              msg.role === "assistant" && !msg.isStreaming && msg.content
+              !msg.isStreaming && msg.content
                 ? () => handleSpeakMessage(msg.id, msg.content)
                 : undefined
             }
