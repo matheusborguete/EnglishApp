@@ -141,7 +141,6 @@ export function useVoice({
         if (r.isFinal) final += r[0].transcript;
         else interim += r[0].transcript;
       }
-      setTranscript(final || interim);
 
       if (final.trim()) {
         finalBufferRef.current.push(final.trim());
@@ -157,6 +156,14 @@ export function useVoice({
           );
         }
       }
+
+      // Show the full accumulated text so the display never shrinks.
+      // Finals are in the buffer; interim is the in-progress segment.
+      const accumulated = finalBufferRef.current.join(" ");
+      const display = interim
+        ? (accumulated ? accumulated + " " + interim : interim)
+        : accumulated;
+      setTranscript(display);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {

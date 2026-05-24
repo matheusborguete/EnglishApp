@@ -370,7 +370,7 @@ export function ConversationSession({ topicId, level }: Props) {
           <div className="flex border-b border-gray-100">
             <button
               onClick={enterVoiceMode}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
                 inputMode === "voice" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
               }`}
             >
@@ -378,7 +378,7 @@ export function ConversationSession({ topicId, level }: Props) {
             </button>
             <button
               onClick={enterConversationMode}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
                 inputMode === "conversation" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
               }`}
             >
@@ -386,7 +386,7 @@ export function ConversationSession({ topicId, level }: Props) {
             </button>
             <button
               onClick={enterTextMode}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
                 inputMode === "text" ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"
               }`}
             >
@@ -395,24 +395,24 @@ export function ConversationSession({ topicId, level }: Props) {
           </div>
         )}
 
-        <div className="px-4 py-4">
+        <div className="px-4 py-3">
 
           {/* ══════════════════════════════════════════════════════════════
               VOICE MODE — user controls every send via hold or tap-toggle.
               autoSend = false in useVoice, so no debounce auto-fires.
           ══════════════════════════════════════════════════════════════ */}
           {inputMode === "voice" && isSTTSupported && (
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
               <button
                 onPointerDown={handleMicPointerDown}
                 onPointerUp={handleMicPointerUp}
                 onClick={handleMicClick}
                 disabled={isLoading || (isSpeaking && !isListening)}
                 className={[
-                  "w-24 h-24 rounded-full flex items-center justify-center text-white",
-                  "transition-all duration-200 active:scale-95 shadow-xl select-none touch-none",
+                  "w-16 h-16 rounded-full flex items-center justify-center text-white",
+                  "transition-all duration-200 active:scale-95 shadow-lg select-none touch-none",
                   isListening
-                    ? "bg-red-500 ring-8 ring-red-200 animate-pulse"
+                    ? "bg-red-500 ring-4 ring-red-200 animate-pulse"
                     : isSpeaking
                     ? "bg-purple-500 opacity-50"
                     : isLoading || isProcessing
@@ -421,15 +421,15 @@ export function ConversationSession({ topicId, level }: Props) {
                 ].join(" ")}
               >
                 {isLoading || isProcessing
-                  ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   : isSpeaking
                   ? <SpeakerIcon />
                   : isListening
                   ? <StopIcon />
-                  : <MicIcon className="w-10 h-10" />}
+                  : <MicIcon className="w-7 h-7" />}
               </button>
 
-              <p className="text-sm font-medium text-center">
+              <p className="text-xs font-medium text-center">
                 {isListening
                   ? <span className="text-red-500">Gravando… toque para enviar ✓</span>
                   : isSpeaking
@@ -452,7 +452,7 @@ export function ConversationSession({ topicId, level }: Props) {
               Emma response. autoSend = true, debounce drives the send.
           ══════════════════════════════════════════════════════════════ */}
           {inputMode === "conversation" && (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <ConversationModeButton
                 voiceState={voiceState}
                 isLoading={isLoading}
@@ -507,7 +507,7 @@ export function ConversationSession({ topicId, level }: Props) {
           )}
 
           {/* Phrase helper button — visible in all modes */}
-          <div className="mt-3 flex justify-center">
+          <div className="mt-2 flex justify-center">
             <button
               onClick={() => setShowPhraseHelper(true)}
               className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full hover:bg-amber-100 active:scale-95 transition-all"
@@ -556,18 +556,18 @@ function ConversationModeButton({
     <div className="relative flex items-center justify-center">
       {isListening && (
         <>
-          <span className="absolute w-28 h-28 rounded-full bg-red-200 opacity-40 animate-ping" />
-          <span className="absolute w-24 h-24 rounded-full bg-red-200 opacity-30 animate-ping [animation-delay:0.3s]" />
+          <span className="absolute w-24 h-24 rounded-full bg-red-200 opacity-40 animate-ping" />
+          <span className="absolute w-20 h-20 rounded-full bg-red-200 opacity-30 animate-ping [animation-delay:0.3s]" />
         </>
       )}
       {isSpeaking && (
-        <span className="absolute w-28 h-28 rounded-full bg-purple-200 opacity-40 animate-pulse" />
+        <span className="absolute w-24 h-24 rounded-full bg-purple-200 opacity-40 animate-pulse" />
       )}
       <button
         onClick={onStop}
         className={[
-          "relative w-20 h-20 rounded-full flex items-center justify-center",
-          "text-white shadow-xl transition-all duration-300",
+          "relative w-16 h-16 rounded-full flex items-center justify-center",
+          "text-white shadow-lg transition-all duration-300",
           isListening ? "bg-red-500"
             : isSpeaking ? "bg-purple-500"
             : busy ? "bg-amber-400"
