@@ -86,24 +86,38 @@ export function ConversationSession({ topicId, level }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSpeechEnd = useCallback(() => {
-    // In conversation mode, auto-restart mic after Emma finishes speaking
-    if (conversationMode) {
-      setTimeout(() => startListening(), 300);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationMode]);
+  // handleSpeechEnd ref — updated after handleStartListening is defined
+  const handleSpeechEndRef = useRef<() => void>(() => {});
 
   const {
     voiceState, isSTTSupported, isTTSSupported,
     transcript, startListening, stopListening,
-    speak, stopSpeaking, resetToIdle,
-  } = useVoice({ onTranscriptFinal: handleTranscriptFinal, onSpeechEnd: handleSpeechEnd });
+    speak, stopSpeaking, resetToIdle, unlockTTS,
+  } = useVoice({
+    onTranscriptFinal: handleTranscriptFinal,
+    onSpeechEnd: () => handleSpeechEndRef.current(),
+  });
+
+  const handleStartListening = useCallback(() => {
+    unlockTTS();
+    startListening();
+  }, [unlockTTS, startListening]);
+
+  // Keep the ref up to date
+  useEffect(() => {
+    handleSpeechEndRef.current = () => {
+      if (conversationMode) setTimeout(() => handleStartListening(), 300);
+    };
+  }, [conversationMode, handleStartListening]);
+
+  // Track which message is currently being spoken (for the play button highlight)
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
 
   /* ── Chat ── */
-  const handleResponseDone = useCallback((text: string) => {
-    resetToIdle();          // Fix: unblock mic after AI responds
-    speak(text);            // Speak the AI response
+  const handleResponseDone = useCallback((text: string, msgId?: string) => {
+    resetToIdle();
+    if (msgId) setSpeakingMsgId(msgId);
+    speak(text);
   }, [resetToIdle, speak]);
 
   const {
@@ -126,11 +140,17 @@ export function ConversationSession({ topicId, level }: Props) {
     }
   }, [isTTSSupported, messages, speak]);
 
+  // Clear speaking highlight when TTS stops
+  useEffect(() => {
+    if (voiceState !== "speaking") setSpeakingMsgId(null);
+  }, [voiceState]);
+
   /* ── Text submit ── */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const v = textInput.trim();
     if (!v || isLoading) return;
+    unlockTTS(); // Must be synchronous inside the click handler to unlock iOS
     sendMessage(v);
     setTextInput("");
     inputRef.current?.focus();
@@ -149,6 +169,16 @@ export function ConversationSession({ topicId, level }: Props) {
   const handleEnd = () => {
     if (window.confirm("Encerrar e ver correções?")) { stopSpeaking(); endSession(); }
   };
+
+  const handleSpeakMessage = useCallback((msgId: string, content: string) => {
+    if (voiceState === "speaking" && speakingMsgId === msgId) {
+      stopSpeaking();
+    } else {
+      unlockTTS();
+      setSpeakingMsgId(msgId);
+      speak(content);
+    }
+  }, [voiceState, speakingMsgId, stopSpeaking, unlockTTS, speak]);
 
   const userCount = messages.filter((m) => m.role === "user").length;
 
@@ -195,6 +225,10 @@ export function ConversationSession({ topicId, level }: Props) {
             key={msg.id}
             message={msg}
             onWordTap={msg.role === "assistant" ? handleWordTap : undefined}
+            onSpeak={msg.role === "assistant" && !msg.isStreaming && msg.content
+              ? () => handleSpeakMessage(msg.id, msg.content)
+              : undefined}
+            isSpeaking={speakingMsgId === msg.id && voiceState === "speaking"}
           />
         ))}
 
@@ -227,7 +261,7 @@ export function ConversationSession({ topicId, level }: Props) {
               🎙️ Gravar
             </button>
             <button
-              onClick={() => { setInputMode("voice"); setConversationMode(true); if (!isListening && !micBusy) startListening(); }}
+              onClick={() => { setInputMode("voice"); setConversationMode(true); if (!isListening && !micBusy) handleStartListening(); }}
               className={`flex-1 py-2 text-xs font-medium transition-colors ${conversationMode ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"}`}
             >
               💬 Conversa
@@ -269,7 +303,7 @@ export function ConversationSession({ topicId, level }: Props) {
           {inputMode === "voice" && !conversationMode && isSTTSupported && (
             <div className="flex flex-col items-center gap-3">
               <button
-                onPointerDown={startListening}
+                onPointerDown={handleStartListening}
                 onPointerUp={isListening ? stopListening : undefined}
                 onClick={isListening ? stopListening : undefined}
                 disabled={micBusy}

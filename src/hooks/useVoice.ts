@@ -20,6 +20,8 @@ interface UseVoiceReturn {
   stopSpeaking: () => void;
   resetToIdle: () => void;
   clearTranscript: () => void;
+  /** Call directly inside a touch/click handler to unlock iOS TTS for the session */
+  unlockTTS: () => void;
 }
 
 export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): UseVoiceReturn {
@@ -187,6 +189,19 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
 
   const clearTranscript = useCallback(() => setTranscript(""), []);
 
+  /**
+   * iOS Safari blocks programmatic TTS unless it's triggered within a user
+   * gesture. Call this function synchronously inside any onClick/onSubmit
+   * handler BEFORE the async chain begins. The silent utterance "unlocks"
+   * speechSynthesis for the rest of the session.
+   */
+  const unlockTTS = useCallback(() => {
+    if (!synthRef.current) return;
+    const silence = new SpeechSynthesisUtterance("");
+    silence.volume = 0;
+    synthRef.current.speak(silence);
+  }, []);
+
   return {
     voiceState,
     isSTTSupported,
@@ -198,5 +213,6 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
     stopSpeaking,
     resetToIdle,
     clearTranscript,
+    unlockTTS,
   };
 }

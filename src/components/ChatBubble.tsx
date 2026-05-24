@@ -5,6 +5,8 @@ import type { Message } from "@/types";
 interface ChatBubbleProps {
   message: Message;
   onWordTap?: (word: string) => void;
+  onSpeak?: () => void;
+  isSpeaking?: boolean;
 }
 
 function TypingIndicator() {
@@ -21,7 +23,18 @@ function TypingIndicator() {
   );
 }
 
-/** Renders AI text with each word as a tappable button. */
+const PlayIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const StopIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+    <rect x="6" y="6" width="12" height="12" rx="1" />
+  </svg>
+);
+
 function ClickableText({
   text,
   onWordTap,
@@ -29,30 +42,21 @@ function ClickableText({
   text: string;
   onWordTap: (word: string) => void;
 }) {
-  // Split preserving spaces and line breaks
   const tokens = text.split(/(\s+)/);
-
   return (
     <>
       {tokens.map((token, i) => {
-        // Whitespace — render as-is
         if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
-
-        // Strip leading/trailing punctuation to get the pure word
         const word = token.replace(/^[^a-zA-Z']+|[^a-zA-Z']+$/g, "");
         if (!word) return <span key={i}>{token}</span>;
-
-        // Prefix/suffix punctuation preserved visually
         const prefix = token.slice(0, token.indexOf(word[0]));
         const suffix = token.slice(token.indexOf(word[0]) + word.length);
-
         return (
           <span key={i}>
             {prefix}
             <button
               onClick={() => onWordTap(word)}
               className="underline decoration-dotted decoration-sky-300 underline-offset-2 hover:text-sky-600 active:bg-sky-100 rounded transition-colors cursor-pointer"
-              aria-label={`Translate: ${word}`}
             >
               {word}
             </button>
@@ -64,9 +68,10 @@ function ClickableText({
   );
 }
 
-export function ChatBubble({ message, onWordTap }: ChatBubbleProps) {
+export function ChatBubble({ message, onWordTap, onSpeak, isSpeaking }: ChatBubbleProps) {
   const isAI = message.role === "assistant";
   const isEmpty = !message.content && message.isStreaming;
+  const isComplete = isAI && !message.isStreaming && !!message.content;
 
   const displayContent = message.content
     .replace(/<corrections>[\s\S]*?<\/corrections>/g, "")
@@ -80,28 +85,46 @@ export function ChatBubble({ message, onWordTap }: ChatBubbleProps) {
         </div>
       )}
 
-      <div
-        className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-          isAI
-            ? "bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm"
-            : "bg-sky-500 text-white rounded-br-sm"
-        }`}
-      >
-        {isEmpty ? (
-          <TypingIndicator />
-        ) : isAI && !message.isStreaming && onWordTap ? (
-          // Completed AI message — words are tappable
-          <>
-            <ClickableText text={displayContent} onWordTap={onWordTap} />
-            <p className="text-[10px] text-gray-300 mt-1.5">Toque em uma palavra para ver o significado</p>
-          </>
-        ) : (
-          <>
-            {displayContent}
-            {message.isStreaming && (
-              <span className="inline-block w-1 h-4 bg-current ml-0.5 animate-pulse align-middle rounded-sm" />
-            )}
-          </>
+      <div className="max-w-[78%] flex flex-col gap-1">
+        <div
+          className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+            isAI
+              ? "bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm"
+              : "bg-sky-500 text-white rounded-br-sm"
+          }`}
+        >
+          {isEmpty ? (
+            <TypingIndicator />
+          ) : isComplete && onWordTap ? (
+            <>
+              <ClickableText text={displayContent} onWordTap={onWordTap} />
+              <p className="text-[10px] text-gray-300 mt-1.5">
+                Toque numa palavra para ver o significado
+              </p>
+            </>
+          ) : (
+            <>
+              {displayContent}
+              {message.isStreaming && (
+                <span className="inline-block w-1 h-4 bg-current ml-0.5 animate-pulse align-middle rounded-sm" />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Play / stop button — only on completed AI messages */}
+        {isComplete && onSpeak && (
+          <button
+            onClick={onSpeak}
+            className={`self-start flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+              isSpeaking
+                ? "bg-purple-100 text-purple-600 border border-purple-200"
+                : "bg-gray-100 text-gray-500 border border-gray-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200"
+            }`}
+          >
+            {isSpeaking ? <StopIcon /> : <PlayIcon />}
+            {isSpeaking ? "Parar" : "Ouvir Emma"}
+          </button>
         )}
       </div>
 
