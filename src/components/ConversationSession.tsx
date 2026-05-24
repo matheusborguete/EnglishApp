@@ -117,6 +117,44 @@ export function ConversationSession({ topicId, level }: Props) {
     startListening();
   }, [unlockTTS, startListening]);
 
+  // Dual-gesture mic: quick tap = toggle, hold = push-to-talk (release to send)
+  const HOLD_THRESHOLD_MS = 350;
+  const holdStartTimeRef = useRef<number | null>(null);
+  const isTapModeRef = useRef(false);
+
+  const handleMicPointerDown = useCallback(() => {
+    if (voiceState !== "idle") return; // covers listening, speaking, processing
+    isTapModeRef.current = false;
+    holdStartTimeRef.current = Date.now();
+    handleStartListening();
+  }, [voiceState, handleStartListening]);
+
+  const handleMicPointerUp = useCallback(() => {
+    if (voiceState !== "listening" || holdStartTimeRef.current === null) return;
+    const elapsed = Date.now() - holdStartTimeRef.current;
+    holdStartTimeRef.current = null;
+    if (elapsed >= HOLD_THRESHOLD_MS) {
+      // Hold gesture completed → stop on release
+      isTapModeRef.current = false;
+      stopListening();
+    } else {
+      // Quick tap → stay recording, wait for second tap
+      isTapModeRef.current = true;
+    }
+  }, [voiceState, stopListening]);
+
+  const handleMicClick = useCallback(() => {
+    if (isTapModeRef.current) {
+      // This onClick belongs to the same gesture that started recording — ignore
+      isTapModeRef.current = false;
+      return;
+    }
+    if (voiceState === "listening") {
+      // Second tap in toggle mode → stop and send
+      stopListening();
+    }
+  }, [voiceState, stopListening]);
+
   // Keep the ref up to date
   useEffect(() => {
     handleSpeechEndRef.current = () => {
@@ -327,11 +365,13 @@ export function ConversationSession({ topicId, level }: Props) {
           {/* ── VOICE MANUAL MODE ── */}
           {inputMode === "voice" && !conversationMode && isSTTSupported && (
             <div className="flex flex-col items-center gap-4">
-              {/* Big toggle mic button */}
+              {/* Big mic button: quick tap = toggle, hold = push-to-talk */}
               <button
-                onClick={isListening ? stopListening : handleStartListening}
+                onPointerDown={handleMicPointerDown}
+                onPointerUp={handleMicPointerUp}
+                onClick={handleMicClick}
                 disabled={micBusy && !isListening}
-                className={`w-24 h-24 rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95 shadow-xl
+                className={`w-24 h-24 rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95 shadow-xl select-none touch-none
                   ${isListening
                     ? "bg-red-500 ring-8 ring-red-200 animate-pulse"
                     : isSpeaking
@@ -354,7 +394,7 @@ export function ConversationSession({ topicId, level }: Props) {
                   ? <span className="text-purple-500">Emma está falando</span>
                   : isLoading || isProcessing
                   ? <span className="text-amber-500">Processando…</span>
-                  : <span className="text-sky-600">Toque para começar a gravar</span>}
+                  : <span className="text-sky-600">Toque · ou segure e solte</span>}
               </p>
 
               {isListening && transcript && (
