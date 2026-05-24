@@ -69,6 +69,9 @@ export function useVoice({
   const restartTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether the recording session is logically "open" (user hasn't stopped).
   const sessionActiveRef = useRef(false);
+  // True between onstart and onend — used to detect the restart gap where
+  // recognition.stop() won't trigger onend (BUG 1 fix).
+  const recognitionRunningRef = useRef(false);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const clearRestartTimer = () => {
@@ -132,6 +135,7 @@ export function useVoice({
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+      recognitionRunningRef.current = true;
       setVoiceState("listening");
       // Don't clear transcript here — manual mode shows accumulated text.
     };
@@ -166,9 +170,10 @@ export function useVoice({
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      recognitionRunningRef.current = false;
       if (event.error === "no-speech") {
-        // Timeout with no speech — restart if session is still active.
-        if (sessionActiveRef.current && !autoSendRef.current) {
+        // Timeout with no speech — restart if session is still active (both modes).
+        if (sessionActiveRef.current) {
           scheduleRestart();
         }
         return;
@@ -182,11 +187,12 @@ export function useVoice({
     };
 
     recognition.onend = () => {
+      recognitionRunningRef.current = false;
       if (autoSendRef.current) {
-        // CONVERSATION MODE: onend fires after the utterance completes.
-        // onresult already handled sending; nothing to do here except
-        // ensure state doesn't stay "listening" if nothing was said.
-        setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
+        // CONVERSATION MODE: onresult already handled sending.
+        // Always reset to idle so the state machine is in a clean position
+        // for the next startListening() call.
+        setVoiceState("idle");
         return;
       }
 
@@ -206,7 +212,9 @@ export function useVoice({
           setVoiceState("idle");
         }
       } else if (sessionActiveRef.current) {
-        // Natural utterance end — restart to keep capturing.
+        // Natural utterance end — go idle first so handleMicPointerDown
+        // doesn't see "listening" and return early during the restart gap.
+        setVoiceState("idle");
         scheduleRestart();
       } else {
         setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
@@ -242,9 +250,25 @@ export function useVoice({
 
   const stopListening = useCallback(() => {
     clearRestartTimer();
-    userStoppedRef.current  = true;
     sessionActiveRef.current = false;
-    recognitionRef.current?.stop();
+    if (recognitionRunningRef.current) {
+      // Recognition is active — stop() will trigger onend which flushes the buffer.
+      userStoppedRef.current = true;
+      recognitionRef.current?.stop();
+    } else {
+      // Recognition is not running (restart gap or never started).
+      // onend won't fire, so flush the buffer immediately.
+      userStoppedRef.current = false;
+      const text = finalBufferRef.current.join(" ").trim();
+      finalBufferRef.current = [];
+      setTranscript("");
+      if (text) {
+        setVoiceState("processing");
+        onTranscriptRef.current(text);
+      } else {
+        setVoiceState("idle");
+      }
+    }
   }, []);
 
   const speak = useCallback((text: string) => {

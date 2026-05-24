@@ -173,11 +173,15 @@ export function ConversationSession({ topicId, level }: Props) {
   }, [stopListening, stopSpeaking]);
 
   const enterConversationMode = useCallback(() => {
+    // Stop any existing recording/playback before switching mode so that
+    // recognition.start() doesn't throw on an already-running session.
+    stopListening();
+    stopSpeaking();
     setInputMode("conversation");
-    // Start listening after the state (and autoSend ref) update propagates.
-    // The 80ms delay inside startListening gives React time to commit.
-    startListeningRef.current();
-  }, []);
+    // Delay long enough for recognition.stop() → onend to resolve before
+    // we call start() again. 300ms covers the worst-case async gap.
+    setTimeout(() => startListeningRef.current(), 300);
+  }, [stopListening, stopSpeaking]);
 
   const enterTextMode = useCallback(() => {
     stopListening();
