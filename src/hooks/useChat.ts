@@ -3,14 +3,14 @@
 import { useState, useCallback, useRef } from "react";
 import type { Message, ConversationSession, CorrectionNote, TopicId, Level } from "@/types";
 import { generateId, saveSession, updateProgressAfterSession } from "@/lib/storage";
-import { buildSystemPrompt } from "@/lib/prompts";
 import { getTopicById } from "@/lib/topics";
-import { streamChat } from "@/lib/webllm";
 
 interface UseChatOptions {
   topicId: TopicId;
   level: Level;
   sessionId: string;
+  onStreamChunk?: (chunk: string) => void;
+  onStreamDone?: (fullText: string) => void;
 }
 
 interface UseChatReturn {
@@ -28,19 +28,21 @@ function parseCorrections(text: string): { notes: CorrectionNote[]; summary: str
   const match = text.match(/<corrections>([\s\S]*?)<\/corrections>/);
   if (!match) return { notes: [], summary: "" };
   try {
-    const parsed = JSON.parse(match[1]) as {
-      corrections: CorrectionNote[];
-      summary: string;
-    };
+    const parsed = JSON.parse(match[1]) as { corrections: CorrectionNote[]; summary: string };
     return { notes: parsed.corrections ?? [], summary: parsed.summary ?? "" };
   } catch {
     return { notes: [], summary: "" };
   }
 }
 
-export function useChat({ topicId, level, sessionId }: UseChatOptions): UseChatReturn {
+export function useChat({
+  topicId,
+  level,
+  sessionId,
+  onStreamChunk,
+  onStreamDone,
+}: UseChatOptions): UseChatReturn {
   const topic = getTopicById(topicId);
-  const systemPrompt = buildSystemPrompt(topicId, level);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -65,7 +67,8 @@ export function useChat({ topicId, level, sessionId }: UseChatOptions): UseChatR
     startedAt: Date.now(),
   });
 
-  const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -91,62 +94,90 @@ export function useChat({ topicId, level, sessionId }: UseChatOptions): UseChatR
       setIsLoading(true);
       setError(null);
 
-      abortRef.current = new AbortController();
-
       try {
-        // Build full message history for WebLLM
-        const history = messages.map((m) => ({ role: m.role, content: m.content }));
-        const fullMessages = [
-          { role: "system", content: systemPrompt },
-          ...history,
-          { role: "user", content },
-        ];
+        // Build history excluding the empty placeholder
+        const history = messagesRef.current.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...history, { role: "user", content }],
+            topicId,
+            level,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+          throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
+        }
+
+        if (!res.body) throw new Error("No response body");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
         let accumulated = "";
 
-        await streamChat(
-          fullMessages,
-          (chunk) => {
-            accumulated += chunk;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: true } : m
-              )
-            );
-          },
-          abortRef.current.signal
-        );
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        // Finalize streaming message
+          const text = decoder.decode(value, { stream: true });
+          const lines = text.split("\n");
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") break;
+            try {
+              const { delta } = JSON.parse(data) as { delta: string };
+              if (delta) {
+                accumulated += delta;
+                onStreamChunk?.(delta);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMessageId
+                      ? { ...m, content: accumulated, isStreaming: true }
+                      : m
+                  )
+                );
+              }
+            } catch {
+              // Partial JSON line — skip
+            }
+          }
+        }
+
+        // Mark streaming done
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: false } : m
           )
         );
 
-        // Save session to localStorage
+        onStreamDone?.(accumulated);
+
+        // Persist session
         const updatedMessages: Message[] = [
-          ...messages,
+          ...messagesRef.current,
           userMessage,
-          {
-            id: aiMessageId,
-            role: "assistant" as const,
-            content: accumulated,
-            timestamp: Date.now(),
-          },
+          { id: aiMessageId, role: "assistant" as const, content: accumulated, timestamp: Date.now() },
         ];
         sessionRef.current = { ...sessionRef.current, messages: updatedMessages };
         saveSession(sessionRef.current);
       } catch (err: unknown) {
         if ((err as Error).name === "AbortError") return;
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        setError(msg);
+        setError(err instanceof Error ? err.message : "Unknown error");
         setMessages((prev) => prev.filter((m) => m.id !== aiMessageId));
       } finally {
         setIsLoading(false);
       }
     },
-    [isLoading, hasEnded, messages, systemPrompt]
+    [isLoading, hasEnded, topicId, level, onStreamChunk, onStreamDone]
   );
 
   const endSession = useCallback(async () => {

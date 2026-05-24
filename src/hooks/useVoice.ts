@@ -5,39 +5,101 @@ import type { VoiceState } from "@/types";
 
 interface UseVoiceReturn {
   voiceState: VoiceState;
-  isSupported: boolean;
+  isSTTSupported: boolean;
+  isTTSSupported: boolean;
   transcript: string;
   startListening: () => void;
   stopListening: () => void;
+  /** Feed streaming tokens — speaks sentence-by-sentence as they arrive */
+  feedChunk: (chunk: string) => void;
+  /** Call when streaming is done to flush any remaining text */
+  flushSpeech: () => void;
+  /** Speak a full string at once */
   speak: (text: string) => void;
   stopSpeaking: () => void;
   clearTranscript: () => void;
 }
 
+const SENTENCE_END = /[.!?]+\s+/;
+
 export function useVoice(onTranscriptFinal: (text: string) => void): UseVoiceReturn {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSTTSupported, setIsSTTSupported] = useState(false);
+  const [isTTSSupported, setIsTTSSupported] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const ttsBuffer = useRef("");
+  const isSpeakingRef = useRef(false);
 
-  // Stable callback ref to avoid hook dependency churn
   const callbackRef = useRef(onTranscriptFinal);
-  useEffect(() => {
-    callbackRef.current = onTranscriptFinal;
-  });
+  useEffect(() => { callbackRef.current = onTranscriptFinal; });
+
+  // Select preferred English voice
+  const getEnglishVoice = useCallback((): SpeechSynthesisVoice | undefined => {
+    const voices = synthRef.current?.getVoices() ?? [];
+    const en = voices.filter((v) => v.lang.startsWith("en"));
+    return (
+      en.find((v) =>
+        v.name.includes("Samantha") ||
+        v.name.includes("Google US English") ||
+        v.name.includes("Microsoft Aria") ||
+        v.name.includes("Karen") ||
+        v.name.includes("Zira")
+      ) ?? en[0]
+    );
+  }, []);
+
+  const enqueueSentence = useCallback((text: string) => {
+    if (!synthRef.current || !text.trim()) return;
+
+    const utterance = new SpeechSynthesisUtterance(text.trim());
+    utterance.lang = "en-US";
+    utterance.rate = 0.92;
+
+    const voice = getEnglishVoice();
+    if (voice) utterance.voice = voice;
+
+    utterance.onstart = () => {
+      isSpeakingRef.current = true;
+      setVoiceState("speaking");
+    };
+    utterance.onend = () => {
+      // Check if synth queue is empty
+      if (!synthRef.current?.speaking) {
+        isSpeakingRef.current = false;
+        setVoiceState("idle");
+      }
+    };
+    utterance.onerror = () => {
+      isSpeakingRef.current = false;
+      setVoiceState("idle");
+    };
+
+    synthRef.current.speak(utterance);
+  }, [getEnglishVoice]);
 
   useEffect(() => {
+    // TTS setup
+    if (window.speechSynthesis) {
+      synthRef.current = window.speechSynthesis;
+      setIsTTSSupported(true);
+      // Warm up voice list (async on some browsers)
+      const loadVoices = () => window.speechSynthesis.getVoices();
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // STT setup
     const SpeechRecognitionAPI =
       window.SpeechRecognition ??
       (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition })
         .webkitSpeechRecognition;
 
-    if (!SpeechRecognitionAPI || !window.speechSynthesis) return;
+    if (!SpeechRecognitionAPI) return;
 
-    setIsSupported(true);
-    synthRef.current = window.speechSynthesis;
+    setIsSTTSupported(true);
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = "en-US";
@@ -70,7 +132,6 @@ export function useVoice(onTranscriptFinal: (text: string) => void): UseVoiceRet
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error !== "no-speech") {
-        console.warn("Speech recognition error:", event.error);
         setVoiceState("error");
       } else {
         setVoiceState("idle");
@@ -93,10 +154,12 @@ export function useVoice(onTranscriptFinal: (text: string) => void): UseVoiceRet
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
     synthRef.current?.cancel();
+    isSpeakingRef.current = false;
+    ttsBuffer.current = "";
     try {
       recognitionRef.current.start();
     } catch {
-      // Already started — ignore
+      // Already started
     }
   }, []);
 
@@ -105,54 +168,48 @@ export function useVoice(onTranscriptFinal: (text: string) => void): UseVoiceRet
     setVoiceState("idle");
   }, []);
 
+  /** Feed a streaming chunk — queues TTS as each sentence completes */
+  const feedChunk = useCallback((chunk: string) => {
+    ttsBuffer.current += chunk;
+
+    // Detect sentence boundaries and speak immediately
+    let match;
+    while ((match = SENTENCE_END.exec(ttsBuffer.current)) !== null) {
+      const sentence = ttsBuffer.current.slice(0, match.index + match[0].length);
+      ttsBuffer.current = ttsBuffer.current.slice(match.index + match[0].length);
+      const clean = sentence.replace(/<corrections>[\s\S]*?<\/corrections>/g, "").trim();
+      if (clean) enqueueSentence(clean);
+    }
+  }, [enqueueSentence]);
+
+  /** Flush remaining buffered text after streaming ends */
+  const flushSpeech = useCallback(() => {
+    const remaining = ttsBuffer.current
+      .replace(/<corrections>[\s\S]*?<\/corrections>/g, "")
+      .trim();
+    ttsBuffer.current = "";
+    if (remaining) enqueueSentence(remaining);
+  }, [enqueueSentence]);
+
+  /** Speak a full string at once (for the opening message) */
   const speak = useCallback((text: string) => {
     if (!synthRef.current) return;
     synthRef.current.cancel();
+    isSpeakingRef.current = false;
+    ttsBuffer.current = "";
 
-    const cleanText = text
-      .replace(/<corrections>[\s\S]*?<\/corrections>/g, "")
-      .replace(/\[END_SESSION\]/g, "")
-      .trim();
+    const clean = text.replace(/<corrections>[\s\S]*?<\/corrections>/g, "").trim();
+    if (!clean) return;
 
-    if (!cleanText) return;
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = "en-US";
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-
-    const selectVoice = () => {
-      if (!synthRef.current) return;
-      const voices = synthRef.current.getVoices();
-      const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-      const preferred =
-        englishVoices.find(
-          (v) =>
-            v.name.includes("Samantha") ||
-            v.name.includes("Google US English") ||
-            v.name.includes("Microsoft Aria") ||
-            v.name.includes("Karen") ||
-            v.name.includes("Zira")
-        ) ?? englishVoices[0];
-      if (preferred) utterance.voice = preferred;
-    };
-
-    if (synthRef.current.getVoices().length > 0) {
-      selectVoice();
-    } else {
-      synthRef.current.onvoiceschanged = selectVoice;
-    }
-
-    utterance.onstart = () => setVoiceState("speaking");
-    utterance.onend = () => setVoiceState("idle");
-    utterance.onerror = () => setVoiceState("idle");
-
-    setVoiceState("speaking");
-    synthRef.current.speak(utterance);
-  }, []);
+    // Split into sentences and enqueue each
+    const sentences = clean.split(/(?<=[.!?])\s+/).filter(Boolean);
+    sentences.forEach((s) => enqueueSentence(s));
+  }, [enqueueSentence]);
 
   const stopSpeaking = useCallback(() => {
     synthRef.current?.cancel();
+    isSpeakingRef.current = false;
+    ttsBuffer.current = "";
     setVoiceState("idle");
   }, []);
 
@@ -160,10 +217,13 @@ export function useVoice(onTranscriptFinal: (text: string) => void): UseVoiceRet
 
   return {
     voiceState,
-    isSupported,
+    isSTTSupported,
+    isTTSSupported,
     transcript,
     startListening,
     stopListening,
+    feedChunk,
+    flushSpeech,
     speak,
     stopSpeaking,
     clearTranscript,

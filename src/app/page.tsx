@@ -1,25 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { TopicGrid } from "@/components/TopicGrid";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
-import { isModelReady } from "@/lib/storage";
 
 export default function HomePage() {
-  const router = useRouter();
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    if (!isModelReady()) {
-      router.replace("/setup");
-    } else {
-      setChecked(true);
-    }
-  }, [router]);
-
-  if (!checked) return null;
-
   return (
     <main className="min-h-screen bg-gray-50 pb-8">
       {/* Hero */}
@@ -32,12 +14,12 @@ export default function HomePage() {
             Não em português.
           </h1>
           <p className="text-sky-200 text-sm leading-relaxed max-w-xs mx-auto">
-            Pratique conversações reais com Emma, sua tutora de inglês por IA. Sem decorar gramática
-            — só falar.
+            Pratique conversações reais com Emma, sua tutora de inglês por IA.
+            Sem decorar gramática — só falar.
           </p>
 
           <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {["🎙️ Voz", "💡 Correções suaves", "🔒 100% no celular"].map((f) => (
+            {["🎙️ Voz", "💡 Correções suaves", "⚡ Respostas rápidas"].map((f) => (
               <span key={f} className="bg-white/15 text-white/90 text-xs px-3 py-1 rounded-full">
                 {f}
               </span>
@@ -55,11 +37,10 @@ export default function HomePage() {
         <TopicGrid />
       </div>
 
-      {/* Progress (hidden until first session) */}
       <ProgressDashboard />
 
       <footer className="text-center mt-6 text-xs text-gray-400 px-4">
-        Todas as conversas ficam no seu celular. Nenhum dado enviado para a nuvem.
+        Conversas processadas pelo Llama 3.1 via Groq. Sem custo para uso pessoal.
       </footer>
     </main>
   );

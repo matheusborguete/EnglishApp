@@ -28,46 +28,47 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
   const topic = getTopicById(topicId);
   const sessionId = useRef(generateId()).current;
 
-  const {
-    messages,
-    isLoading,
-    error,
-    hasEnded,
-    corrections,
-    sessionSummary,
-    sendMessage,
-    endSession,
-  } = useChat({ topicId, level, sessionId });
-
   const handleTranscriptFinal = useCallback(
-    (text: string) => {
-      if (text.trim()) sendMessage(text.trim());
-    },
-    [sendMessage]
+    (text: string) => { if (text.trim()) sendMessage(text.trim()); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
-  const { voiceState, isSupported, transcript, startListening, stopListening, speak, stopSpeaking } =
-    useVoice(handleTranscriptFinal);
+  const {
+    voiceState, isSTTSupported, isTTSSupported,
+    transcript, startListening, stopListening,
+    feedChunk, flushSpeech, speak, stopSpeaking,
+  } = useVoice(handleTranscriptFinal);
+
+  const {
+    messages, isLoading, error,
+    hasEnded, corrections, sessionSummary,
+    sendMessage, endSession,
+  } = useChat({
+    topicId,
+    level,
+    sessionId,
+    onStreamChunk: feedChunk,
+    onStreamDone: flushSpeech,
+  });
 
   const [textInput, setTextInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const openingSpoken = useRef(false);
 
   // Auto-scroll on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-speak last AI message when streaming finishes
-  const lastMsg = messages[messages.length - 1];
-  const lastMsgId = lastMsg?.id;
-  const lastMsgStreaming = lastMsg?.isStreaming;
+  // Speak the opening message once TTS is ready
   useEffect(() => {
-    if (lastMsg?.role === "assistant" && !lastMsgStreaming && lastMsg.content && !hasEnded) {
-      speak(lastMsg.content);
+    if (isTTSSupported && !openingSpoken.current && messages.length === 1) {
+      openingSpoken.current = true;
+      speak(messages[0].content);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastMsgId, lastMsgStreaming]);
+  }, [isTTSSupported, messages, speak]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +94,7 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
 
   const handleEndSession = () => {
     if (window.confirm("Encerrar a conversa e ver suas correções?")) {
+      stopSpeaking();
       endSession();
     }
   };
@@ -151,9 +153,15 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
         {/* Error message */}
         {error && (
           <div className="mx-auto max-w-sm bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-xs text-center my-2">
-            Erro ao processar. Tente novamente.
-            <br />
-            <code className="text-red-400">{error.slice(0, 80)}</code>
+            {error.includes("GROQ_API_KEY") ? (
+              <>
+                <strong>Configure a chave da API</strong>
+                <br />
+                Adicione <code>GROQ_API_KEY</code> nas variáveis de ambiente do Vercel.
+              </>
+            ) : (
+              <>Erro ao processar. Tente novamente.<br /><code className="text-red-400">{error.slice(0, 80)}</code></>
+            )}
           </div>
         )}
 
@@ -163,13 +171,15 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
       {/* Input area */}
       <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 safe-area-bottom">
         <div className="flex items-end gap-3 max-w-2xl mx-auto">
-          <VoiceButton
-            voiceState={voiceState}
-            isSupported={isSupported}
-            onStart={startListening}
-            onStop={stopListening}
-            disabled={isLoading}
-          />
+          {isSTTSupported && (
+            <VoiceButton
+              voiceState={voiceState}
+              isSupported={isSTTSupported}
+              onStart={startListening}
+              onStop={stopListening}
+              disabled={isLoading}
+            />
+          )}
 
           <form onSubmit={handleSubmit} className="flex-1 flex items-end gap-2">
             <textarea
@@ -177,7 +187,7 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
               value={textInput}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder={isSupported ? "Ou escreva aqui..." : "Escreva sua mensagem..."}
+              placeholder={isSTTSupported ? "Ou escreva aqui..." : "Escreva sua mensagem..."}
               disabled={isLoading}
               rows={1}
               className="flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent placeholder:text-gray-300 disabled:opacity-50 bg-gray-50"
@@ -188,18 +198,22 @@ export function ConversationSession({ topicId, level }: ConversationSessionProps
               disabled={!textInput.trim() || isLoading}
               className="w-10 h-10 rounded-full flex items-center justify-center bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             >
-              <SendIcon />
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <SendIcon />
+              )}
             </button>
           </form>
         </div>
 
-        {/* Skip speaking */}
+        {/* Skip TTS */}
         {voiceState === "speaking" && (
           <button
             onClick={stopSpeaking}
             className="flex items-center justify-center gap-1 mx-auto mt-2 text-xs text-gray-400 hover:text-gray-600 w-full"
           >
-            ▾ Toque para pular
+            ▾ Toque para pular a fala
           </button>
         )}
       </div>
