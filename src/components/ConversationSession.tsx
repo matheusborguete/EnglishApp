@@ -92,6 +92,15 @@ export function ConversationSession({ topicId, level }: Props) {
   // handleSpeechEnd ref — updated after handleStartListening is defined
   const handleSpeechEndRef = useRef<() => void>(() => {});
 
+  // Level-aware voice settings: beginners get a longer debounce (more time to
+  // finish a slow sentence) and a slower TTS rate (easier to follow Emma)
+  const VOICE_SETTINGS = {
+    beginner:     { finalDebounceMs: 1400, speechRate: 0.80 },
+    intermediate: { finalDebounceMs: 700,  speechRate: 0.90 },
+    advanced:     { finalDebounceMs: 250,  speechRate: 1.0  },
+  } as const;
+  const voiceSettings = VOICE_SETTINGS[level];
+
   const {
     voiceState, isSTTSupported, isTTSSupported,
     transcript, startListening, stopListening,
@@ -99,6 +108,8 @@ export function ConversationSession({ topicId, level }: Props) {
   } = useVoice({
     onTranscriptFinal: handleTranscriptFinal,
     onSpeechEnd: () => handleSpeechEndRef.current(),
+    finalDebounceMs: voiceSettings.finalDebounceMs,
+    speechRate: voiceSettings.speechRate,
   });
 
   const handleStartListening = useCallback(() => {

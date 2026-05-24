@@ -5,8 +5,15 @@ import type { VoiceState } from "@/types";
 
 interface UseVoiceOptions {
   onTranscriptFinal: (text: string) => void;
-  /** Chamado quando TTS termina — usado pelo modo conversa para auto-religar o mic */
+  /** Called when TTS ends — used by conversation mode to auto-restart mic */
   onSpeechEnd?: () => void;
+  /**
+   * How long (ms) to wait after the last speech segment before sending.
+   * Higher = more forgiving of slow/pausing speakers. Default 600ms.
+   */
+  finalDebounceMs?: number;
+  /** TTS speech rate, 0–2. Default 0.92. Lower = easier to follow. */
+  speechRate?: number;
 }
 
 interface UseVoiceReturn {
@@ -20,11 +27,15 @@ interface UseVoiceReturn {
   stopSpeaking: () => void;
   resetToIdle: () => void;
   clearTranscript: () => void;
-  /** Call directly inside a touch/click handler to unlock iOS TTS for the session */
   unlockTTS: () => void;
 }
 
-export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): UseVoiceReturn {
+export function useVoice({
+  onTranscriptFinal,
+  onSpeechEnd,
+  finalDebounceMs = 600,
+  speechRate = 0.92,
+}: UseVoiceOptions): UseVoiceReturn {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [transcript, setTranscript] = useState("");
   const [isSTTSupported, setIsSTTSupported] = useState(false);
@@ -34,8 +45,26 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const onTranscriptRef = useRef(onTranscriptFinal);
   const onSpeechEndRef = useRef(onSpeechEnd);
+  const finalDebounceRef = useRef(finalDebounceMs);
+  const speechRateRef = useRef(speechRate);
   useEffect(() => { onTranscriptRef.current = onTranscriptFinal; });
   useEffect(() => { onSpeechEndRef.current = onSpeechEnd; });
+  useEffect(() => { finalDebounceRef.current = finalDebounceMs; });
+  useEffect(() => { speechRateRef.current = speechRate; });
+
+  // Accumulated final transcript segments and debounce timer
+  const finalBufferRef = useRef<string[]>([]);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fireTranscript = useCallback(() => {
+    debounceTimerRef.current = null;
+    const text = finalBufferRef.current.join(" ").trim();
+    finalBufferRef.current = [];
+    if (text) {
+      setVoiceState("processing");
+      onTranscriptRef.current(text);
+    }
+  }, []);
 
   const getEnglishVoice = useCallback((): SpeechSynthesisVoice | null => {
     const voices = synthRef.current?.getVoices() ?? [];
@@ -73,7 +102,7 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = "en-US";
-    recognition.continuous = false;
+    recognition.continuous = true;   // keeps mic open through natural pauses
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
@@ -91,45 +120,63 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
         else interim += r[0].transcript;
       }
       setTranscript(final || interim);
+
       if (final.trim()) {
-        setVoiceState("processing");
-        onTranscriptRef.current(final.trim());
+        finalBufferRef.current.push(final.trim());
+        // Reset debounce window on each new speech segment
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = setTimeout(fireTranscript, finalDebounceRef.current);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error !== "no-speech") console.warn("STT error:", event.error);
+      if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
+      finalBufferRef.current = [];
       setVoiceState("idle");
       setTranscript("");
     };
 
     recognition.onend = () => {
-      // Only snap back to idle if still in listening (not processing/speaking)
-      setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
+      // Flush any buffered text that hasn't been sent yet (e.g. when stopListening fires)
+      if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
+      const buffered = finalBufferRef.current.join(" ").trim();
+      finalBufferRef.current = [];
+      if (buffered) {
+        setVoiceState("processing");
+        onTranscriptRef.current(buffered);
+      } else {
+        setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
+      }
+      setTranscript("");
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       recognition.abort();
       window.speechSynthesis?.cancel();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
     synthRef.current?.cancel();
+    finalBufferRef.current = [];
+    if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
     setVoiceState("idle");
     setTranscript("");
-    // Small delay to let cancel propagate
     setTimeout(() => {
       try { recognitionRef.current?.start(); } catch { /* already started */ }
     }, 80);
   }, []);
 
   const stopListening = useCallback(() => {
+    // Cancel any pending debounce — onend will flush the buffer
+    if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
     recognitionRef.current?.stop();
-    setVoiceState("idle");
     setTranscript("");
   }, []);
 
@@ -144,7 +191,6 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
 
     if (!clean) return;
 
-    // Split into sentences and queue each one for natural pacing
     const sentences = clean
       .split(/(?<=[.!?])\s+/)
       .map((s) => s.trim())
@@ -153,7 +199,7 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
     sentences.forEach((sentence, idx) => {
       const utterance = new SpeechSynthesisUtterance(sentence);
       utterance.lang = "en-US";
-      utterance.rate = 0.92;
+      utterance.rate = speechRateRef.current;
       utterance.pitch = 1.05;
 
       const voice = getEnglishVoice();
@@ -189,12 +235,6 @@ export function useVoice({ onTranscriptFinal, onSpeechEnd }: UseVoiceOptions): U
 
   const clearTranscript = useCallback(() => setTranscript(""), []);
 
-  /**
-   * iOS Safari blocks programmatic TTS unless it's triggered within a user
-   * gesture. Call this function synchronously inside any onClick/onSubmit
-   * handler BEFORE the async chain begins. The silent utterance "unlocks"
-   * speechSynthesis for the rest of the session.
-   */
   const unlockTTS = useCallback(() => {
     if (!synthRef.current) return;
     const silence = new SpeechSynthesisUtterance("");
