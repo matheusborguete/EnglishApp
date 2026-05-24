@@ -45,7 +45,6 @@ const HOLD_THRESHOLD_MS = 350;
 // The debounce (conversation mode only) is a short fixed value — just enough
 // to stitch together a brief STT pause without making the conversation feel sluggish.
 const SPEECH_RATE = { beginner: 0.80, intermediate: 0.90, advanced: 1.00 } as const;
-const CONVERSATION_DEBOUNCE_MS = 400;
 
 type InputMode = "text" | "voice" | "conversation";
 
@@ -108,7 +107,6 @@ export function ConversationSession({ topicId, level }: Props) {
     onTranscriptFinal: handleTranscriptFinal,
     onSpeechEnd: handleSpeechEnd,
     autoSend: inputMode === "conversation",
-    finalDebounceMs: CONVERSATION_DEBOUNCE_MS,
     speechRate: SPEECH_RATE[level],
   });
 
