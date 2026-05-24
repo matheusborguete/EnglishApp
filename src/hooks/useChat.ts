@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import Groq from "groq-sdk";
 import type { Message, ConversationSession, CorrectionNote, TopicId, Level } from "@/types";
 import { generateId, saveSession, updateProgressAfterSession } from "@/lib/storage";
 import { getTopicById } from "@/lib/topics";
+import { buildSystemPrompt } from "@/lib/prompts";
+import { getApiKey } from "@/lib/apikey";
 
 interface UseChatOptions {
   topicId: TopicId;
@@ -43,6 +46,7 @@ export function useChat({
   onStreamDone,
 }: UseChatOptions): UseChatReturn {
   const topic = getTopicById(topicId);
+  const systemPrompt = buildSystemPrompt(topicId, level);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -74,6 +78,12 @@ export function useChat({
     async (content: string) => {
       if (isLoading || hasEnded) return;
 
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        setError("Chave da API não encontrada. Volte à tela inicial.");
+        return;
+      }
+
       const userMessage: Message = {
         id: generateId(),
         role: "user",
@@ -82,77 +92,49 @@ export function useChat({
       };
 
       const aiMessageId = generateId();
-      const aiPlaceholder: Message = {
-        id: aiMessageId,
-        role: "assistant",
-        content: "",
-        timestamp: Date.now(),
-        isStreaming: true,
-      };
-
-      setMessages((prev) => [...prev, userMessage, aiPlaceholder]);
+      setMessages((prev) => [
+        ...prev,
+        userMessage,
+        { id: aiMessageId, role: "assistant", content: "", timestamp: Date.now(), isStreaming: true },
+      ]);
       setIsLoading(true);
       setError(null);
 
       try {
-        // Build history excluding the empty placeholder
+        const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+
         const history = messagesRef.current.map((m) => ({
-          role: m.role,
+          role: m.role as "user" | "assistant",
           content: m.content,
         }));
 
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [...history, { role: "user", content }],
-            topicId,
-            level,
-          }),
+        const stream = await groq.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...history,
+            { role: "user", content },
+          ],
+          stream: true,
+          temperature: 0.8,
+          max_tokens: 300,
         });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-          throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
-        }
-
-        if (!res.body) throw new Error("No response body");
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
         let accumulated = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split("\n");
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            try {
-              const { delta } = JSON.parse(data) as { delta: string };
-              if (delta) {
-                accumulated += delta;
-                onStreamChunk?.(delta);
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === aiMessageId
-                      ? { ...m, content: accumulated, isStreaming: true }
-                      : m
-                  )
-                );
-              }
-            } catch {
-              // Partial JSON line — skip
-            }
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content ?? "";
+          if (delta) {
+            accumulated += delta;
+            onStreamChunk?.(delta);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: true } : m
+              )
+            );
           }
         }
 
-        // Mark streaming done
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: false } : m
@@ -161,7 +143,6 @@ export function useChat({
 
         onStreamDone?.(accumulated);
 
-        // Persist session
         const updatedMessages: Message[] = [
           ...messagesRef.current,
           userMessage,
@@ -170,14 +151,14 @@ export function useChat({
         sessionRef.current = { ...sessionRef.current, messages: updatedMessages };
         saveSession(sessionRef.current);
       } catch (err: unknown) {
-        if ((err as Error).name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        setError(msg);
         setMessages((prev) => prev.filter((m) => m.id !== aiMessageId));
       } finally {
         setIsLoading(false);
       }
     },
-    [isLoading, hasEnded, topicId, level, onStreamChunk, onStreamDone]
+    [isLoading, hasEnded, systemPrompt, onStreamChunk, onStreamDone]
   );
 
   const endSession = useCallback(async () => {
@@ -191,7 +172,6 @@ export function useChat({
         const { notes, summary } = parseCorrections(lastMsg.content);
         setCorrections(notes);
         setSessionSummary(summary);
-
         const finalSession: ConversationSession = {
           ...sessionRef.current,
           messages: prev,

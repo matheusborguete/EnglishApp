@@ -1,7 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TopicGrid } from "@/components/TopicGrid";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
+import { hasApiKey, clearApiKey } from "@/lib/apikey";
 
 export default function HomePage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!hasApiKey()) {
+      router.replace("/setup");
+    } else {
+      setReady(true);
+    }
+  }, [router]);
+
+  if (!ready) return null;
+
   return (
     <main className="min-h-screen bg-gray-50 pb-8">
       {/* Hero */}
@@ -39,8 +57,14 @@ export default function HomePage() {
 
       <ProgressDashboard />
 
-      <footer className="text-center mt-6 text-xs text-gray-400 px-4">
-        Conversas processadas pelo Llama 3.1 via Groq. Sem custo para uso pessoal.
+      <footer className="text-center mt-6 text-xs text-gray-400 px-4 flex flex-col gap-2">
+        <span>Powered by Llama 3.1 via Groq · Grátis para uso pessoal</span>
+        <button
+          onClick={() => { clearApiKey(); router.push("/setup"); }}
+          className="text-gray-300 underline"
+        >
+          Trocar chave da API
+        </button>
       </footer>
     </main>
   );
