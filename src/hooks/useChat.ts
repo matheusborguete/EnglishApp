@@ -12,8 +12,7 @@ interface UseChatOptions {
   topicId: TopicId;
   level: Level;
   sessionId: string;
-  onStreamChunk?: (chunk: string) => void;
-  onStreamDone?: (fullText: string) => void;
+  onResponseDone?: (fullText: string) => void;
 }
 
 interface UseChatReturn {
@@ -38,23 +37,12 @@ function parseCorrections(text: string): { notes: CorrectionNote[]; summary: str
   }
 }
 
-export function useChat({
-  topicId,
-  level,
-  sessionId,
-  onStreamChunk,
-  onStreamDone,
-}: UseChatOptions): UseChatReturn {
+export function useChat({ topicId, level, sessionId, onResponseDone }: UseChatOptions): UseChatReturn {
   const topic = getTopicById(topicId);
   const systemPrompt = buildSystemPrompt(topicId, level);
 
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: generateId(),
-      role: "assistant",
-      content: topic.starterMessage,
-      timestamp: Date.now(),
-    },
+    { id: generateId(), role: "assistant", content: topic.starterMessage, timestamp: Date.now() },
   ]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -64,135 +52,103 @@ export function useChat({
   const [sessionSummary, setSessionSummary] = useState("");
 
   const sessionRef = useRef<ConversationSession>({
-    id: sessionId,
-    topicId,
-    level,
-    messages: [],
-    startedAt: Date.now(),
+    id: sessionId, topicId, level, messages: [], startedAt: Date.now(),
   });
-
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  const onResponseDoneRef = useRef(onResponseDone);
+  onResponseDoneRef.current = onResponseDone;
 
-  const sendMessage = useCallback(
-    async (content: string) => {
-      if (isLoading || hasEnded) return;
+  const sendMessage = useCallback(async (content: string) => {
+    if (isLoading || hasEnded) return;
 
-      const apiKey = getApiKey();
-      if (!apiKey) {
-        setError("Chave da API não encontrada. Volte à tela inicial.");
-        return;
-      }
+    const apiKey = getApiKey();
+    if (!apiKey) { setError("Chave da API não encontrada."); return; }
 
-      const userMessage: Message = {
-        id: generateId(),
-        role: "user",
-        content,
-        timestamp: Date.now(),
-      };
+    const userMsg: Message = { id: generateId(), role: "user", content, timestamp: Date.now() };
+    const aiId = generateId();
 
-      const aiMessageId = generateId();
-      setMessages((prev) => [
-        ...prev,
-        userMessage,
-        { id: aiMessageId, role: "assistant", content: "", timestamp: Date.now(), isStreaming: true },
-      ]);
-      setIsLoading(true);
-      setError(null);
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: aiId, role: "assistant", content: "", timestamp: Date.now(), isStreaming: true },
+    ]);
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+    try {
+      const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
 
-        const history = messagesRef.current.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        }));
+      const history = messagesRef.current.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
 
-        const stream = await groq.chat.completions.create({
-          model: "llama-3.1-8b-instant",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...history,
-            { role: "user", content },
-          ],
-          stream: true,
-          temperature: 0.8,
-          max_tokens: 300,
-        });
+      const stream = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history,
+          { role: "user", content },
+        ],
+        stream: true,
+        temperature: 0.8,
+        max_tokens: 300,
+      });
 
-        let accumulated = "";
+      let accumulated = "";
 
-        for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content ?? "";
-          if (delta) {
-            accumulated += delta;
-            onStreamChunk?.(delta);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: true } : m
-              )
-            );
-          }
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content ?? "";
+        if (delta) {
+          accumulated += delta;
+          setMessages((prev) =>
+            prev.map((m) => m.id === aiId ? { ...m, content: accumulated, isStreaming: true } : m)
+          );
         }
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiMessageId ? { ...m, content: accumulated, isStreaming: false } : m
-          )
-        );
-
-        onStreamDone?.(accumulated);
-
-        const updatedMessages: Message[] = [
-          ...messagesRef.current,
-          userMessage,
-          { id: aiMessageId, role: "assistant" as const, content: accumulated, timestamp: Date.now() },
-        ];
-        sessionRef.current = { ...sessionRef.current, messages: updatedMessages };
-        saveSession(sessionRef.current);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Unknown error";
-        setError(msg);
-        setMessages((prev) => prev.filter((m) => m.id !== aiMessageId));
-      } finally {
-        setIsLoading(false);
       }
-    },
-    [isLoading, hasEnded, systemPrompt, onStreamChunk, onStreamDone]
-  );
+
+      setMessages((prev) =>
+        prev.map((m) => m.id === aiId ? { ...m, content: accumulated, isStreaming: false } : m)
+      );
+
+      // Notify parent so it can trigger TTS
+      onResponseDoneRef.current?.(accumulated);
+
+      const updated: Message[] = [
+        ...messagesRef.current,
+        userMsg,
+        { id: aiId, role: "assistant" as const, content: accumulated, timestamp: Date.now() },
+      ];
+      sessionRef.current = { ...sessionRef.current, messages: updated };
+      saveSession(sessionRef.current);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setMessages((prev) => prev.filter((m) => m.id !== aiId));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, hasEnded, systemPrompt]);
 
   const endSession = useCallback(async () => {
     if (hasEnded) return;
     await sendMessage("[END_SESSION]");
     setHasEnded(true);
-
     setMessages((prev) => {
-      const lastMsg = prev[prev.length - 1];
-      if (lastMsg?.role === "assistant") {
-        const { notes, summary } = parseCorrections(lastMsg.content);
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant") {
+        const { notes, summary } = parseCorrections(last.content);
         setCorrections(notes);
         setSessionSummary(summary);
-        const finalSession: ConversationSession = {
-          ...sessionRef.current,
-          messages: prev,
-          endedAt: Date.now(),
-          corrections: notes,
+        const final: ConversationSession = {
+          ...sessionRef.current, messages: prev, endedAt: Date.now(), corrections: notes,
         };
-        saveSession(finalSession);
-        updateProgressAfterSession(finalSession);
+        saveSession(final);
+        updateProgressAfterSession(final);
       }
       return prev;
     });
   }, [hasEnded, sendMessage]);
 
-  return {
-    messages,
-    isLoading,
-    error,
-    hasEnded,
-    corrections,
-    sessionSummary,
-    sendMessage,
-    endSession,
-  };
+  return { messages, isLoading, error, hasEnded, corrections, sessionSummary, sendMessage, endSession };
 }
