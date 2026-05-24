@@ -4,7 +4,7 @@ import type { Message } from "@/types";
 
 interface ChatBubbleProps {
   message: Message;
-  onWordTap?: (word: string) => void;
+  onWordTap?: (word: string, context: string) => void;
   onSpeak?: () => void;
   isSpeaking?: boolean;
 }
@@ -40,7 +40,7 @@ function ClickableText({
   onWordTap,
 }: {
   text: string;
-  onWordTap: (word: string) => void;
+  onWordTap: (word: string, context: string) => void;
 }) {
   const tokens = text.split(/(\s+)/);
   return (
@@ -55,7 +55,7 @@ function ClickableText({
           <span key={i}>
             {prefix}
             <button
-              onClick={() => onWordTap(word)}
+              onClick={() => onWordTap(word, text)}
               className="underline decoration-dotted decoration-sky-300 underline-offset-2 hover:text-sky-600 active:bg-sky-100 rounded transition-colors cursor-pointer"
             >
               {word}

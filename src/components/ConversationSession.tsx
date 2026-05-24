@@ -145,13 +145,13 @@ export function ConversationSession({ topicId, level }: Props) {
   }, [inputMode, unlockTTS, sendMessage]);
 
   // ── Word lookup ───────────────────────────────────────────────────────────
-  const handleWordTap = useCallback(async (word: string) => {
+  const handleWordTap = useCallback(async (word: string, context: string) => {
     setSelectedWord(word);
     setWordInfo(null);
     setWordError(null);
     setWordLoading(true);
     try {
-      setWordInfo(await lookupWord(word));
+      setWordInfo(await lookupWord(word, context));
     } catch {
       setWordError("Não foi possível traduzir.");
     } finally {

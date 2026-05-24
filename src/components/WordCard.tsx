@@ -16,10 +16,19 @@ const TYPE_PT: Record<string, string> = {
   adjective: "adjetivo",
   adverb: "advérbio",
   phrase: "expressão",
+  expression: "expressão",
   preposition: "preposição",
   conjunction: "conjunção",
   pronoun: "pronome",
 };
+
+function typeLabel(type: string) {
+  const lower = type.toLowerCase();
+  for (const [key, val] of Object.entries(TYPE_PT)) {
+    if (lower.includes(key)) return val;
+  }
+  return type;
+}
 
 export function WordCard({ word, info, loading, error, onClose }: WordCardProps) {
   return (
@@ -50,23 +59,49 @@ export function WordCard({ word, info, loading, error, onClose }: WordCardProps)
         )}
 
         {info && !loading && (
-          <div>
+          <div className="space-y-4">
             {/* Word + type */}
-            <div className="flex items-baseline gap-3 mb-1">
+            <div className="flex items-baseline gap-3">
               <h2 className="text-2xl font-bold text-gray-900">{info.word}</h2>
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                {TYPE_PT[info.type] ?? info.type}
+                {typeLabel(info.type)}
               </span>
             </div>
 
-            {/* Translation */}
-            <p className="text-xl text-sky-600 font-semibold mb-4">{info.pt}</p>
-
-            {/* Example */}
-            <div className="bg-sky-50 border border-sky-100 rounded-2xl px-4 py-3">
-              <p className="text-xs text-sky-400 font-medium mb-1 uppercase tracking-wide">Exemplo</p>
-              <p className="text-sm text-gray-700 italic leading-relaxed">{info.example}</p>
+            {/* Contextual meaning — most prominent */}
+            <div className="bg-sky-50 border border-sky-200 rounded-2xl px-4 py-3">
+              <p className="text-[10px] text-sky-400 font-semibold uppercase tracking-wider mb-1">
+                Nessa frase
+              </p>
+              {info.contextPhrase.toLowerCase() !== info.word.toLowerCase() && (
+                <p className="text-xs text-sky-500 font-medium mb-1 italic">
+                  "{info.contextPhrase}"
+                </p>
+              )}
+              <p className="text-xl font-bold text-sky-700">{info.contextPt}</p>
             </div>
+
+            {/* Other meanings */}
+            {info.otherMeanings?.length > 0 && (
+              <div>
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-2">
+                  Outros usos
+                </p>
+                <div className="space-y-2">
+                  {info.otherMeanings.map((m, i) => (
+                    <div key={i} className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-gray-800">{m.pt}</span>
+                        <span className="text-[10px] text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded-full">
+                          {typeLabel(m.type)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 italic">{m.example}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
