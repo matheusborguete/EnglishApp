@@ -283,7 +283,7 @@ export function ConversationSession({ topicId, level }: Props) {
               onClick={() => { setInputMode("voice"); setConversationMode(false); }}
               className={`flex-1 py-2 text-xs font-medium transition-colors ${inputMode === "voice" && !conversationMode ? "text-sky-600 border-b-2 border-sky-500" : "text-gray-400"}`}
             >
-              🎙️ Gravar
+              🎙️ Voz
             </button>
             <button
               onClick={() => { setInputMode("voice"); setConversationMode(true); if (!isListening && !micBusy) handleStartListening(); }}
@@ -326,26 +326,44 @@ export function ConversationSession({ topicId, level }: Props) {
 
           {/* ── VOICE MANUAL MODE ── */}
           {inputMode === "voice" && !conversationMode && isSTTSupported && (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-4">
+              {/* Big toggle mic button */}
               <button
-                onPointerDown={handleStartListening}
-                onPointerUp={isListening ? stopListening : undefined}
-                onClick={isListening ? stopListening : undefined}
-                disabled={micBusy}
-                className={`w-20 h-20 rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95 disabled:opacity-40 shadow-lg
-                  ${isListening ? "bg-red-500 ring-4 ring-red-300 animate-pulse" : isSpeaking ? "bg-purple-500" : "bg-sky-500 hover:bg-sky-600"}`}
+                onClick={isListening ? stopListening : handleStartListening}
+                disabled={micBusy && !isListening}
+                className={`w-24 h-24 rounded-full flex items-center justify-center text-white transition-all duration-200 active:scale-95 shadow-xl
+                  ${isListening
+                    ? "bg-red-500 ring-8 ring-red-200 animate-pulse"
+                    : isSpeaking
+                    ? "bg-purple-500 opacity-40"
+                    : isLoading || isProcessing
+                    ? "bg-amber-400"
+                    : "bg-sky-500 hover:bg-sky-600"}`}
               >
-                {isSpeaking ? <SpeakerIcon /> : isListening ? <StopIcon /> : <MicIcon />}
+                {isLoading || isProcessing
+                  ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : isSpeaking ? <SpeakerIcon />
+                  : isListening ? <StopIcon />
+                  : <MicIcon className="w-10 h-10" />}
               </button>
-              <p className="text-xs text-gray-400 text-center">
-                {isListening ? "Solte para enviar"
-                  : isSpeaking ? "Emma está falando"
-                  : isLoading || isProcessing ? "Processando..."
-                  : "Pressione e fale em inglês"}
+
+              <p className="text-sm font-medium text-center">
+                {isListening
+                  ? <span className="text-red-500">Gravando… toque para enviar ✓</span>
+                  : isSpeaking
+                  ? <span className="text-purple-500">Emma está falando</span>
+                  : isLoading || isProcessing
+                  ? <span className="text-amber-500">Processando…</span>
+                  : <span className="text-sky-600">Toque para começar a gravar</span>}
               </p>
+
+              {isListening && transcript && (
+                <p className="text-xs text-gray-400 italic text-center max-w-xs">"{transcript}"</p>
+              )}
+
               {isSpeaking && (
                 <button onClick={stopSpeaking} className="text-xs text-sky-500 underline">
-                  Parar fala
+                  Parar fala da Emma
                 </button>
               )}
             </div>
