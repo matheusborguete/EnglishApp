@@ -24,15 +24,12 @@
       padding: 20px;
     }
 
-    /* Background glow effect */
     body::before {
       content: '';
       position: fixed;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(ellipse at center, rgba(255, 100, 150, 0.08) 0%, transparent 60%);
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(ellipse at center, rgba(255, 100, 150, 0.07) 0%, transparent 60%);
       pointer-events: none;
     }
 
@@ -40,45 +37,87 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0;
       width: 100%;
       max-width: 380px;
     }
 
-    .title {
-      font-size: 0.75rem;
+    /* ── Mode tabs ─────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      padding: 8px 22px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.85rem;
       font-weight: 600;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
-      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
     }
 
-    .subtitle {
-      font-size: 1rem;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 32px;
+    .tab.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
     }
 
-    /* Counter */
+    /* ── Counter ───────────────────────────────────────── */
     .counter-wrap {
       position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .counter {
       font-size: clamp(7rem, 30vw, 10rem);
       font-weight: 900;
       line-height: 1;
+      display: block;
+      text-align: center;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s;
+    }
+
+    /* Counter mode gradient */
+    .counter.mode-counter {
       background: linear-gradient(135deg, #ff6b9d, #ffb347, #ff6b9d);
       background-size: 200% 200%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-      display: block;
-      text-align: center;
       animation: gradientShift 4s ease infinite;
+    }
+
+    /* Game mode — color set dynamically via JS class */
+    .counter.pts-safe {
+      background: linear-gradient(135deg, #43e97b, #38f9d7);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .counter.pts-warn {
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .counter.pts-danger {
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: dangerPulse 0.6s ease-in-out infinite;
     }
 
     @keyframes gradientShift {
@@ -86,17 +125,42 @@
       50% { background-position: 100% 50%; }
     }
 
-    .counter.pop {
-      transform: scale(1.35);
+    @keyframes dangerPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
     }
 
-    /* Ripple on score */
+    .counter.pop { transform: scale(1.35) !important; }
+
+    /* Hearts row for game mode */
+    .hearts {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      font-size: 1.2rem;
+      min-height: 28px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      max-width: 280px;
+    }
+
+    .heart { transition: transform 0.2s, opacity 0.2s; }
+    .heart.lost { opacity: 0; transform: scale(0); }
+
+    .counter-label {
+      text-align: center;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 40px;
+      letter-spacing: 0.5px;
+      min-height: 20px;
+    }
+
+    /* Ripple */
     .ripple {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 200px;
-      height: 200px;
+      top: 50%; left: 50%;
+      width: 200px; height: 200px;
       transform: translate(-50%, -50%) scale(0);
       border-radius: 50%;
       background: rgba(255, 107, 157, 0.3);
@@ -104,22 +168,15 @@
       pointer-events: none;
     }
 
+    .ripple.bad { background: rgba(255, 65, 108, 0.3); }
+
     @keyframes rippleOut {
       to { transform: translate(-50%, -50%) scale(4); opacity: 0; }
     }
 
-    .counter-label {
-      text-align: center;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.3);
-      margin-bottom: 44px;
-      letter-spacing: 0.5px;
-    }
-
-    /* Main button */
+    /* ── Main button ───────────────────────────────────── */
     .btn-main {
-      width: 160px;
-      height: 160px;
+      width: 160px; height: 160px;
       border-radius: 50%;
       border: none;
       cursor: pointer;
@@ -137,7 +194,6 @@
     }
 
     .btn-main:active { transform: scale(0.94); }
-
     .btn-main .icon { font-size: 2.5rem; line-height: 1; }
     .btn-main .label { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px; }
 
@@ -153,7 +209,6 @@
       box-shadow: 0 0 50px rgba(255, 107, 157, 0.6), 0 0 100px rgba(255, 107, 157, 0.2);
     }
 
-    /* Pulse ring when listening */
     .btn-main.stop::before {
       content: '';
       position: absolute;
@@ -177,7 +232,7 @@
       50% { transform: scale(1.06); opacity: 0.4; }
     }
 
-    /* Status */
+    /* ── Status / last word ────────────────────────────── */
     .status {
       margin-top: 28px;
       font-size: 0.85rem;
@@ -190,8 +245,7 @@
     }
 
     .dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: #ff6b9d;
       flex-shrink: 0;
@@ -212,9 +266,9 @@
       text-align: center;
     }
 
-    /* Bottom controls */
+    /* ── Bottom ────────────────────────────────────────── */
     .bottom {
-      margin-top: 36px;
+      margin-top: 32px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -245,31 +299,127 @@
       line-height: 1.5;
     }
 
-    /* Score flash overlay */
+    /* ── Score flash ───────────────────────────────────── */
     .score-flash {
       position: fixed;
       inset: 0;
-      background: rgba(255, 107, 157, 0.12);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.05s;
     }
 
+    .score-flash.good { background: rgba(255, 107, 157, 0.12); }
+    .score-flash.bad  { background: rgba(255, 65, 108, 0.18); }
     .score-flash.active { opacity: 1; }
+
+    /* ── Game over overlay ─────────────────────────────── */
+    .gameover {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 5, 5, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+
+    .gameover.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .gameover-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+      padding: 0 32px;
+      animation: shakeIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    @keyframes shakeIn {
+      0%  { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+      60% { transform: scale(1.05) rotate(3deg); opacity: 1; }
+      80% { transform: scale(0.97) rotate(-1deg); }
+      100%{ transform: scale(1) rotate(0deg); }
+    }
+
+    .gameover-emoji {
+      font-size: 5rem;
+      line-height: 1;
+      animation: wobble 1s ease-in-out infinite 0.6s;
+    }
+
+    @keyframes wobble {
+      0%, 100% { transform: rotate(-8deg); }
+      50% { transform: rotate(8deg); }
+    }
+
+    .gameover-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+    }
+
+    .gameover-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .btn-restart {
+      margin-top: 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 32px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+      transition: transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-restart:active { transform: scale(0.96); }
   </style>
 </head>
 <body>
 
 <div class="score-flash" id="flash"></div>
 
+<!-- Game over overlay -->
+<div class="gameover" id="gameover">
+  <div class="gameover-box">
+    <div class="gameover-emoji">😂</div>
+    <div class="gameover-title">PERDEU!</div>
+    <div class="gameover-sub">Disse o último "mãe"</div>
+    <button class="btn-restart" onclick="restartGame()">🎮 Jogar de novo</button>
+  </div>
+</div>
+
 <div class="app">
-  <div class="title">Afilhada Counter</div>
-  <div class="subtitle">Quantas vezes ela disse mãe?</div>
+  <!-- Mode tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-counter" onclick="setMode('counter')">Contador</button>
+    <button class="tab" id="tab-game" onclick="setMode('game')">Jogo 🎮</button>
+  </div>
+
+  <!-- Hearts (game mode only) -->
+  <div class="hearts" id="hearts" style="display:none"></div>
 
   <div class="counter-wrap">
-    <span class="counter" id="counter">0</span>
+    <span class="counter mode-counter" id="counter">0</span>
   </div>
-  <div class="counter-label">vezes que disse "mãe" 😤</div>
+  <div class="counter-label" id="counter-label">vezes que disse "mãe" 😤</div>
 
   <button class="btn-main start" id="mainBtn" onclick="toggle()">
     <span class="icon">🎤</span>
@@ -280,108 +430,257 @@
   <div class="last-word" id="lastWord">&nbsp;</div>
 
   <div class="bottom">
-    <button class="btn-reset" onclick="resetCount()">Zerar contador</button>
-    <div class="wake-info" id="wakeInfo">
-      Mantenha a tela ligada para funcionar melhor no iPhone
-    </div>
+    <button class="btn-reset" id="resetBtn" onclick="handleReset()">Zerar contador</button>
+    <div class="wake-info" id="wakeInfo">Mantenha a tela ligada para funcionar melhor no iPhone</div>
   </div>
 </div>
 
 <script>
   // ── State ──────────────────────────────────────────────────────────────
-  let count = parseInt(localStorage.getItem('maeCount') || '0');
+  let mode = 'counter';           // 'counter' | 'game'
+  const GAME_START = 10;
+
+  let count     = parseInt(localStorage.getItem('maeCount') || '0');
+  let gamePoints = GAME_START;
+  let gameActive = false;         // true once user starts game mode
+
   let recognition = null;
   let isListening = false;
-  let audioCtx = null;
-  let wakeLock = null;
+  let audioCtx    = null;
+  let wakeLock    = null;
   let restartTimer = null;
 
-  // ── Init ───────────────────────────────────────────────────────────────
-  document.getElementById('counter').textContent = count;
-
-  // Strict: requires vowel ending — used on interim to avoid false positives mid-word
+  // Patterns
   const MAE_STRICT = /\bm[aã]+(?:[eêéiy]|nh[eêéiy]?)\b/gi;
-  // Loose: ending optional — used on final to catch anything missed by interim
   const MAE_LOOSE  = /\bm[aã]+(?:[eêéiy]|nh?[eêéiy]?)?\b/gi;
+
+  // Init counter display
+  document.getElementById('counter').textContent = count;
 
   // ── Audio ──────────────────────────────────────────────────────────────
   function initAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function playScore() {
+  // Cheerful ascending arpeggio (counter mode)
+  function playScoreUp() {
     initAudio();
-    // Cheerful ascending 4-note arpeggio
-    const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
-    freqs.forEach((f, i) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = f;
-
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sine'; osc.frequency.value = f;
       const t0 = audioCtx.currentTime + i * 0.1;
       gain.gain.setValueAtTime(0, t0);
       gain.gain.linearRampToValueAtTime(0.35, t0 + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
-      osc.start(t0);
-      osc.stop(t0 + 0.3);
+      osc.start(t0); osc.stop(t0 + 0.3);
     });
-
-    // Small "thwack" noise on beat 0
+    // Thwack
     const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-    }
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    const ng = audioCtx.createGain();
-    ng.gain.value = 0.15;
-    src.connect(ng);
-    ng.connect(audioCtx.destination);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*(1 - i/d.length);
+    const src = audioCtx.createBufferSource(), ng = audioCtx.createGain();
+    ng.gain.value = 0.15; src.buffer = buf;
+    src.connect(ng); ng.connect(audioCtx.destination);
     src.start(audioCtx.currentTime);
   }
 
-  // ── Counter ────────────────────────────────────────────────────────────
-  function score(word) {
-    count++;
-    localStorage.setItem('maeCount', count);
-
-    const el = document.getElementById('counter');
-    el.textContent = count;
-
-    // Pop animation
-    el.classList.remove('pop');
-    void el.offsetWidth; // reflow
-    el.classList.add('pop');
-    setTimeout(() => el.classList.remove('pop'), 300);
-
-    // Ripple
-    const r = document.createElement('div');
-    r.className = 'ripple';
-    document.querySelector('.counter-wrap').appendChild(r);
-    setTimeout(() => r.remove(), 700);
-
-    // Flash
-    const flash = document.getElementById('flash');
-    flash.classList.add('active');
-    setTimeout(() => flash.classList.remove('active'), 120);
-
-    document.getElementById('lastWord').textContent = `"${word.trim()}" detectado`;
-
-    playScore();
+  // Single descending bloop (lose a point)
+  function playLosePoint() {
+    initAudio();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+    osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4);
   }
 
-  function resetCount() {
-    count = 0;
-    localStorage.setItem('maeCount', 0);
-    document.getElementById('counter').textContent = 0;
-    document.getElementById('lastWord').textContent = ' ';
+  // Dramatic "wah wah wah waaah" defeat music
+  function playGameOver() {
+    initAudio();
+    const notes = [
+      { f: 392.00, t: 0.00, dur: 0.28 },   // G4
+      { f: 349.23, t: 0.32, dur: 0.28 },   // F4
+      { f: 311.13, t: 0.64, dur: 0.28 },   // Eb4
+      { f: 261.63, t: 0.96, dur: 1.40 },   // C4 long
+    ];
+    notes.forEach(({ f, t, dur }) => {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sawtooth'; osc.frequency.value = f;
+      const t0 = audioCtx.currentTime + t;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.4, t0 + 0.04);
+      gain.gain.setValueAtTime(0.4, t0 + dur * 0.8);
+      gain.gain.linearRampToValueAtTime(0, t0 + dur);
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+
+      // Harmonics for brass-like timbre
+      [2, 3].forEach(harmonic => {
+        const h = audioCtx.createOscillator(), hg = audioCtx.createGain();
+        h.connect(hg); hg.connect(audioCtx.destination);
+        h.type = 'sine'; h.frequency.value = f * harmonic;
+        hg.gain.setValueAtTime(0, t0);
+        hg.gain.linearRampToValueAtTime(0.08 / harmonic, t0 + 0.04);
+        hg.gain.setValueAtTime(0.08 / harmonic, t0 + dur * 0.8);
+        hg.gain.linearRampToValueAtTime(0, t0 + dur);
+        h.start(t0); h.stop(t0 + dur + 0.05);
+      });
+    });
+  }
+
+  // ── Scoring ────────────────────────────────────────────────────────────
+  function scoreCounter(word) {
+    count++;
+    localStorage.setItem('maeCount', count);
+    const el = document.getElementById('counter');
+    el.textContent = count;
+    popCounter(); ripple(false); flash(false);
+    document.getElementById('lastWord').textContent = '"' + word.trim() + '" detectado';
+    playScoreUp();
+  }
+
+  function scoreGame(word) {
+    if (!gameActive || gamePoints <= 0) return;
+    gamePoints--;
+    updateHearts();
+    const el = document.getElementById('counter');
+    el.textContent = gamePoints;
+    updateGameColor();
+    popCounter(); ripple(true); flash(true);
+    document.getElementById('lastWord').textContent = '"' + word.trim() + '" — ' + gamePoints + ' pontos restantes';
+
+    if (gamePoints <= 0) {
+      playGameOver();
+      setTimeout(showGameOver, 600);
+    } else {
+      playLosePoint();
+    }
+  }
+
+  function popCounter() {
+    const el = document.getElementById('counter');
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 300);
+  }
+
+  function ripple(bad) {
+    const r = document.createElement('div');
+    r.className = 'ripple' + (bad ? ' bad' : '');
+    document.querySelector('.counter-wrap').appendChild(r);
+    setTimeout(() => r.remove(), 700);
+  }
+
+  function flash(bad) {
+    const el = document.getElementById('flash');
+    el.className = 'score-flash ' + (bad ? 'bad' : 'good');
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 130);
+  }
+
+  // ── Game mode helpers ──────────────────────────────────────────────────
+  function updateGameColor() {
+    const el = document.getElementById('counter');
+    el.classList.remove('mode-counter', 'pts-safe', 'pts-warn', 'pts-danger');
+    if (gamePoints >= 6)      el.classList.add('pts-safe');
+    else if (gamePoints >= 3) el.classList.add('pts-warn');
+    else                      el.classList.add('pts-danger');
+  }
+
+  function updateHearts() {
+    const container = document.getElementById('hearts');
+    const all = container.querySelectorAll('.heart');
+    // Mark hearts as lost from the right
+    const lost = GAME_START - gamePoints;
+    all.forEach((h, i) => {
+      h.classList.toggle('lost', i >= GAME_START - lost);
+    });
+  }
+
+  function buildHearts() {
+    const container = document.getElementById('hearts');
+    container.innerHTML = '';
+    for (let i = 0; i < GAME_START; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart';
+      h.textContent = '❤️';
+      container.appendChild(h);
+    }
+  }
+
+  function showGameOver() {
+    stopListening();
+    document.getElementById('gameover').classList.add('show');
+  }
+
+  function restartGame() {
+    gamePoints = GAME_START;
+    gameActive = true;
+    document.getElementById('gameover').classList.remove('show');
+    document.getElementById('counter').textContent = GAME_START;
+    updateGameColor();
+    buildHearts();
+    document.getElementById('lastWord').textContent = ' ';
+    startListening();
+  }
+
+  // ── Mode switch ────────────────────────────────────────────────────────
+  function setMode(m) {
+    if (isListening) stopListening();
+    mode = m;
+
+    document.getElementById('tab-counter').classList.toggle('active', m === 'counter');
+    document.getElementById('tab-game').classList.toggle('active', m === 'game');
+
+    const counterEl = document.getElementById('counter');
+    const heartsEl  = document.getElementById('hearts');
+    const label     = document.getElementById('counter-label');
+    const resetBtn  = document.getElementById('resetBtn');
+
+    if (m === 'counter') {
+      counterEl.className = 'counter mode-counter';
+      counterEl.textContent = count;
+      heartsEl.style.display = 'none';
+      label.textContent = 'vezes que disse "mãe" 😤';
+      resetBtn.textContent = 'Zerar contador';
+      gameActive = false;
+    } else {
+      gamePoints = GAME_START;
+      gameActive = true;
+      counterEl.className = 'counter';
+      counterEl.textContent = GAME_START;
+      updateGameColor();
+      heartsEl.style.display = 'flex';
+      buildHearts();
+      label.textContent = 'pontos restantes — não diga mãe! 💀';
+      resetBtn.textContent = 'Reiniciar jogo';
+    }
+
+    document.getElementById('lastWord').textContent = ' ';
+    document.getElementById('status').textContent = 'Toque para começar';
+    document.getElementById('mainBtn').className = 'btn-main start';
+    document.getElementById('mainBtn').innerHTML = '<span class="icon">🎤</span><span class="label">Iniciar</span>';
+  }
+
+  function handleReset() {
+    if (mode === 'counter') {
+      count = 0;
+      localStorage.setItem('maeCount', 0);
+      document.getElementById('counter').textContent = 0;
+    } else {
+      gamePoints = GAME_START;
+      gameActive = true;
+      document.getElementById('counter').textContent = GAME_START;
+      updateGameColor();
+      buildHearts();
+    }
+    document.getElementById('lastWord').textContent = ' ';
   }
 
   // ── Speech Recognition ─────────────────────────────────────────────────
@@ -395,28 +694,29 @@
     r.interimResults = true;
     r.maxAlternatives = 3;
 
-    // Tracks how many times we already scored for the current utterance via interim,
-    // so the final result doesn't double-count.
     let interimScored = 0;
 
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-        // Use only the best alternative — concatenating all alternatives
-        // causes the same word to match multiple times for one utterance.
+        // Best alternative only — using all alternatives triple-counts the same word
         const text = ' ' + result[0].transcript;
 
         if (!result.isFinal) {
           const hits = text.match(MAE_STRICT);
           const newTotal = hits ? hits.length : 0;
           if (newTotal > interimScored) {
-            for (let k = interimScored; k < newTotal; k++) score(hits[k]);
+            for (let k = interimScored; k < newTotal; k++) {
+              mode === 'game' ? scoreGame(hits[k]) : scoreCounter(hits[k]);
+            }
             interimScored = newTotal;
           }
         } else {
           const hits = text.match(MAE_LOOSE);
           const finalTotal = hits ? hits.length : 0;
-          for (let k = interimScored; k < finalTotal; k++) score(hits[k]);
+          for (let k = interimScored; k < finalTotal; k++) {
+            mode === 'game' ? scoreGame(hits[k]) : scoreCounter(hits[k]);
+          }
           interimScored = 0;
         }
       }
@@ -426,13 +726,11 @@
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
         setStatus('❌ Permissão de microfone negada', false);
         stopListening();
-        return;
       }
-      // Ignore no-speech / aborted — onend handles restart
     };
 
     r.onend = () => {
-      interimScored = 0; // reset on any restart so next session starts clean
+      interimScored = 0;
       if (isListening) {
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => {
@@ -449,22 +747,18 @@
     if (!('wakeLock' in navigator)) return;
     try {
       wakeLock = await navigator.wakeLock.request('screen');
-      document.getElementById('wakeInfo').textContent =
-        'Tela travada — não vai apagar enquanto estiver ouvindo ✓';
+      document.getElementById('wakeInfo').textContent = 'Tela travada — não vai apagar enquanto estiver ouvindo ✓';
     } catch (_) {}
   }
 
   function releaseWakeLock() {
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    document.getElementById('wakeInfo').textContent =
-      'Mantenha a tela ligada para funcionar melhor no iPhone';
+    document.getElementById('wakeInfo').textContent = 'Mantenha a tela ligada para funcionar melhor no iPhone';
   }
 
-  // Re-acquire after page becomes visible again (e.g. app switcher)
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && isListening) {
       await acquireWakeLock();
-      // Also restart recognition if it died
       try { recognition && recognition.start(); } catch (_) {}
     }
   });
@@ -472,39 +766,22 @@
   // ── UI helpers ─────────────────────────────────────────────────────────
   function setStatus(text, listening) {
     const el = document.getElementById('status');
-    if (listening) {
-      el.innerHTML = '<span class="dot"></span> Ouvindo...';
-    } else {
-      el.innerHTML = text;
-    }
+    el.innerHTML = listening ? '<span class="dot"></span> Ouvindo...' : text;
   }
 
   // ── Toggle ─────────────────────────────────────────────────────────────
   async function toggle() {
-    initAudio(); // must be on user gesture for iOS
-    if (isListening) {
-      stopListening();
-    } else {
-      await startListening();
-    }
+    initAudio();
+    isListening ? stopListening() : await startListening();
   }
 
   async function startListening() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      setStatus('❌ Navegador não suporta reconhecimento de voz', false);
-      return;
-    }
-
+    if (!SR) { setStatus('❌ Navegador não suporta reconhecimento de voz', false); return; }
     recognition = buildRecognition();
     isListening = true;
-
-    try {
-      recognition.start();
-    } catch (_) {}
-
+    try { recognition.start(); } catch (_) {}
     await acquireWakeLock();
-
     const btn = document.getElementById('mainBtn');
     btn.className = 'btn-main stop';
     btn.innerHTML = '<span class="icon">⏹</span><span class="label">Parar</span>';
@@ -514,14 +791,8 @@
   function stopListening() {
     isListening = false;
     clearTimeout(restartTimer);
-
-    if (recognition) {
-      try { recognition.stop(); } catch (_) {}
-      recognition = null;
-    }
-
+    if (recognition) { try { recognition.stop(); } catch (_) {} recognition = null; }
     releaseWakeLock();
-
     const btn = document.getElementById('mainBtn');
     btn.className = 'btn-main start';
     btn.innerHTML = '<span class="icon">🎤</span><span class="label">Iniciar</span>';
