@@ -286,7 +286,10 @@
 
   document.getElementById('counter').textContent = count;
 
-  const MAE_RE = /\bm[aã]+(?:[eêéiy]|nh?[eêéiy]?)?\b/gi;
+  // Strict: requires vowel ending — used on interim to avoid false positives mid-word
+  const MAE_STRICT = /\bm[aã]+(?:[eêéiy]|nh[eêéiy]?)\b/gi;
+  // Loose: ending optional — used on final to catch anything missed by interim
+  const MAE_LOOSE  = /\bm[aã]+(?:[eêéiy]|nh?[eêéiy]?)?\b/gi;
 
   function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -352,33 +355,53 @@
   function buildRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return null;
+
     const r = new SR();
     r.lang = 'pt-BR';
     r.continuous = true;
-    r.interimResults = false;
+    r.interimResults = true;
     r.maxAlternatives = 3;
+
+    // Tracks how many times already scored for the current utterance via interim
+    // so the final result doesn't double-count.
+    let interimScored = 0;
+
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-        if (!result.isFinal) continue;
         let combined = '';
         for (let j = 0; j < result.length; j++) combined += ' ' + result[j].transcript;
-        const matches = combined.match(MAE_RE);
-        if (matches) matches.forEach(m => score(m));
+
+        if (!result.isFinal) {
+          const hits = combined.match(MAE_STRICT);
+          const newTotal = hits ? hits.length : 0;
+          if (newTotal > interimScored) {
+            for (let k = interimScored; k < newTotal; k++) score(hits[k]);
+            interimScored = newTotal;
+          }
+        } else {
+          const hits = combined.match(MAE_LOOSE);
+          const finalTotal = hits ? hits.length : 0;
+          for (let k = interimScored; k < finalTotal; k++) score(hits[k]);
+          interimScored = 0;
+        }
       }
     };
+
     r.onerror = (e) => {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
         setStatus('❌ Permissão de microfone negada', false);
         stopListening();
       }
     };
+
     r.onend = () => {
       if (isListening) {
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => { try { recognition && recognition.start(); } catch (_) {} }, 300);
       }
     };
+
     return r;
   }
 
