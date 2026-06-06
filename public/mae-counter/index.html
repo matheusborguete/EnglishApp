@@ -402,21 +402,19 @@
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-
-        let combined = '';
-        for (let j = 0; j < result.length; j++) combined += ' ' + result[j].transcript;
+        // Use only the best alternative — concatenating all alternatives
+        // causes the same word to match multiple times for one utterance.
+        const text = ' ' + result[0].transcript;
 
         if (!result.isFinal) {
-          // Count as soon as the word is recognisably complete (strict pattern)
-          const hits = combined.match(MAE_STRICT);
+          const hits = text.match(MAE_STRICT);
           const newTotal = hits ? hits.length : 0;
           if (newTotal > interimScored) {
             for (let k = interimScored; k < newTotal; k++) score(hits[k]);
             interimScored = newTotal;
           }
         } else {
-          // Final: catch anything the interim strict pattern may have missed
-          const hits = combined.match(MAE_LOOSE);
+          const hits = text.match(MAE_LOOSE);
           const finalTotal = hits ? hits.length : 0;
           for (let k = interimScored; k < finalTotal; k++) score(hits[k]);
           interimScored = 0;
@@ -434,8 +432,8 @@
     };
 
     r.onend = () => {
+      interimScored = 0; // reset on any restart so next session starts clean
       if (isListening) {
-        // Auto-restart (iOS stops recognition every ~60s)
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => {
           try { recognition && recognition.start(); } catch (_) {}
