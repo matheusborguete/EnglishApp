@@ -286,9 +286,7 @@
 
   document.getElementById('counter').textContent = count;
 
-  // Strict: requires vowel ending — used on interim to avoid false positives mid-word
   const MAE_STRICT = /\bm[aã]+(?:[eêéiy]|nh[eêéiy]?)\b/gi;
-  // Loose: ending optional — used on final to catch anything missed by interim
   const MAE_LOOSE  = /\bm[aã]+(?:[eêéiy]|nh?[eêéiy]?)?\b/gi;
 
   function initAudio() {
@@ -355,32 +353,30 @@
   function buildRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return null;
-
     const r = new SR();
     r.lang = 'pt-BR';
     r.continuous = true;
     r.interimResults = true;
     r.maxAlternatives = 3;
 
-    // Tracks how many times already scored for the current utterance via interim
-    // so the final result doesn't double-count.
     let interimScored = 0;
 
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-        let combined = '';
-        for (let j = 0; j < result.length; j++) combined += ' ' + result[j].transcript;
+        // Use only the best alternative — concatenating all alternatives
+        // causes the same word to match multiple times for one utterance.
+        const text = ' ' + result[0].transcript;
 
         if (!result.isFinal) {
-          const hits = combined.match(MAE_STRICT);
+          const hits = text.match(MAE_STRICT);
           const newTotal = hits ? hits.length : 0;
           if (newTotal > interimScored) {
             for (let k = interimScored; k < newTotal; k++) score(hits[k]);
             interimScored = newTotal;
           }
         } else {
-          const hits = combined.match(MAE_LOOSE);
+          const hits = text.match(MAE_LOOSE);
           const finalTotal = hits ? hits.length : 0;
           for (let k = interimScored; k < finalTotal; k++) score(hits[k]);
           interimScored = 0;
@@ -396,6 +392,7 @@
     };
 
     r.onend = () => {
+      interimScored = 0;
       if (isListening) {
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => { try { recognition && recognition.start(); } catch (_) {} }, 300);
