@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Atribuição de Matrículas — exemplo</title>
+</head>
+<body>
+<style>
+  :root {
+    --paper: #eef2f5;
+    --surface: #ffffff;
+    --surface-2: #f6f9fb;
+    --ink: #0f2130;
+    --muted: #5c6f7c;
+    --faint: #8a9aa5;
+    --line: #dde5ea;
+    --teal: #0d7a83;
+    --teal-soft: #e2f0f1;
+    --amber: #c07813;
+    --amber-soft: #f6ecda;
+    --good: #1f8f5f;
+    /* paleta categórica por canal */
+    --c-email: #0d7a83;
+    --c-tiktok: #d3891c;
+    --c-linkedin: #3b6fb0;
+    --c-meta: #7a5cc0;
+    --c-google: #c0553b;
+    --c-org: #2f9e6a;
+    --shadow: 0 1px 2px rgba(15,33,48,.06), 0 8px 24px rgba(15,33,48,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0b121a;
+      --surface: #131f2a;
+      --surface-2: #0f1a24;
+      --ink: #e7eef3;
+      --muted: #94a6b2;
+      --faint: #6a7d89;
+      --line: #23323e;
+      --teal: #45bcc4;
+      --teal-soft: #10333540;
+      --amber: #e6ab54;
+      --amber-soft: #3a2f1a40;
+      --good: #4bb886;
+      --c-email: #3fb0b8;
+      --c-tiktok: #e6ab54;
+      --c-linkedin: #6f9ee0;
+      --c-meta: #a48ae0;
+      --c-google: #e08066;
+      --c-org: #52c491;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#eef2f5;--surface:#fff;--surface-2:#f6f9fb;--ink:#0f2130;--muted:#5c6f7c;--faint:#8a9aa5;--line:#dde5ea;
+    --teal:#0d7a83;--teal-soft:#e2f0f1;--amber:#c07813;--amber-soft:#f6ecda;--good:#1f8f5f;
+    --c-email:#0d7a83;--c-tiktok:#d3891c;--c-linkedin:#3b6fb0;--c-meta:#7a5cc0;--c-google:#c0553b;--c-org:#2f9e6a;
+    --shadow:0 1px 2px rgba(15,33,48,.06),0 8px 24px rgba(15,33,48,.06);
+  }
+  :root[data-theme="dark"] {
+    --paper:#0b121a;--surface:#131f2a;--surface-2:#0f1a24;--ink:#e7eef3;--muted:#94a6b2;--faint:#6a7d89;--line:#23323e;
+    --teal:#45bcc4;--teal-soft:#10333540;--amber:#e6ab54;--amber-soft:#3a2f1a40;--good:#4bb886;
+    --c-email:#3fb0b8;--c-tiktok:#e6ab54;--c-linkedin:#6f9ee0;--c-meta:#a48ae0;--c-google:#e08066;--c-org:#52c491;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px; }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
+
+  /* ---- hero ---- */
+  header.hero { padding: 72px 0 40px; }
+  .eyebrow {
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--teal); font-weight: 600; margin-bottom: 18px;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: 700;
+    font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.08; letter-spacing: -.01em;
+    margin: 0 0 20px; text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--teal); }
+  .lede { font-size: 1.12rem; color: var(--muted); max-width: 62ch; margin: 0; }
+
+  /* ---- stats ---- */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; margin: 40px 0 8px; }
+  .stat { background: var(--surface); padding: 18px 16px; }
+  .stat .v { font-family: Georgia, serif; font-size: 1.7rem; font-weight: 700; line-height: 1; }
+  .stat .l { font-size: .78rem; color: var(--muted); margin-top: 7px; }
+  @media (max-width: 720px){ .stats { grid-template-columns: repeat(2,1fr);} }
+
+  /* ---- sections ---- */
+  section { padding: 46px 0; border-top: 1px solid var(--line); }
+  .kicker { font-size: .74rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); font-weight: 600; margin-bottom: 10px; }
+  h2 { font-family: Georgia, serif; font-size: 1.7rem; margin: 0 0 10px; letter-spacing: -.01em; }
+  h2 + p.sec-lede { color: var(--muted); margin: 0 0 26px; max-width: 64ch; }
+
+  /* ---- formula cards ---- */
+  .formula { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 22px; margin-bottom: 26px; box-shadow: var(--shadow); }
+  .formula .eq { font-family: Georgia, serif; font-size: 1.5rem; }
+  .formula .eq b { color: var(--teal); }
+  .formula .note { color: var(--muted); font-size: .92rem; }
+  .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  @media (max-width: 720px){ .cards { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; box-shadow: var(--shadow); }
+  .card .tag { display: inline-block; font-family: Georgia, serif; font-style: italic;
+    font-size: 1.15rem; color: var(--teal); margin-bottom: 6px; }
+  .card h3 { margin: 0 0 6px; font-size: 1rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+  /* ---- 100% stacked bar ---- */
+  .journey-head { display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .journey-head .id { font-weight: 600; }
+  .journey-head .val { color: var(--muted); }
+  .stacked { display: flex; height: 46px; border-radius: 9px; overflow: hidden;
+    border: 1px solid var(--line); margin: 14px 0 6px; }
+  .stacked > div { display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .78rem; font-weight: 600; min-width: 0; }
+  .sum-note { text-align: center; color: var(--good); font-weight: 600; font-size: .9rem;
+    margin: 4px 0 24px; }
+  .sum-note::before { content: "✓ "; }
+
+  /* ---- tables ---- */
+  .tbl-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: .9rem; }
+  th, td { padding: 11px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { background: var(--surface-2); color: var(--muted); font-weight: 600;
+    font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; position: sticky; top: 0; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface-2); }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 8px; vertical-align: middle; }
+  .roas { color: var(--good); font-weight: 600; }
+  .pos { color: var(--muted); font-size: .8rem; }
+  .chip { font-size: .72rem; padding: 2px 8px; border-radius: 20px; background: var(--teal-soft);
+    color: var(--teal); border: 1px solid var(--line); }
+
+  /* ---- roas bars ---- */
+  .bars { display: grid; gap: 10px; margin-top: 22px; }
+  .bar-row { display: grid; grid-template-columns: 120px 1fr 56px; align-items: center; gap: 12px; font-size: .86rem; }
+  .bar-track { background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; height: 22px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px 0 0 6px; }
+  .bar-row .val { text-align: right; font-weight: 600; }
+  @media (max-width: 560px){ .bar-row { grid-template-columns: 92px 1fr 48px; } }
+
+  /* ---- callout / footer ---- */
+  .callout { background: var(--amber-soft); border: 1px solid var(--line);
+    border-left: 3px solid var(--amber); border-radius: 10px; padding: 16px 20px; margin-top: 8px; }
+  .callout strong { color: var(--amber); }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-family: ui-monospace, Menlo, monospace;
+    font-size: .85rem; color: var(--ink); }
+  footer { padding: 40px 0 70px; border-top: 1px solid var(--line); color: var(--faint); font-size: .84rem; }
+  a { color: var(--teal); }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Modelo de atribuição multi-touch · exemplo com dados fictícios</div>
+    <h1>Cada matrícula vale <em>100%</em>. A pergunta é: quem levou o crédito no caminho?</h1>
+    <p class="lede">Este é um exemplo do modelo que reconstrói a jornada de cada lead até a matrícula
+      e distribui o crédito entre todos os pontos de contato — por canal, campanha, tipo e período.
+      Os números abaixo são reais, gerados pelo próprio motor de cálculo sobre uma base de demonstração.</p>
+
+    <div class="stats num">
+      <div class="stat"><div class="v">114</div><div class="l">leads</div></div>
+      <div class="stat"><div class="v">62</div><div class="l">matrículas</div></div>
+      <div class="stat"><div class="v">278</div><div class="l">pontos de contato</div></div>
+      <div class="stat"><div class="v">R$ 782 mil</div><div class="l">receita atribuída</div></div>
+      <div class="stat"><div class="v">3</div><div class="l">matrículas sem contato</div></div>
+    </div>
+  </header>
+
+  <!-- COMO FUNCIONA -->
+  <section>
+    <div class="kicker">Como o crédito é calculado</div>
+    <h2>Um score por contato, depois normalizado</h2>
+    <p class="sec-lede">Cada ponto de contato recebe um score bruto. No fim, os scores da matrícula são
+      normalizados para somar exatamente 100% — nada de crédito se perde nem se duplica.</p>
+
+    <div class="formula">
+      <span class="eq">S<sub>i</sub> = <b>P</b> × <b>T</b> × <b>R</b></span>
+      <span class="note">posição × tempo × repetição — todos os pesos são configuráveis.</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <span class="tag">P — posição</span>
+        <h3>Onde o contato aconteceu na jornada</h3>
+        <p>Primeiro e último contato pesam mais (padrão 1,3); intermediários pesam 1,0.
+          Uma única interação recebe peso 1,0.</p>
+      </div>
+      <div class="card">
+        <span class="tag">T — tempo</span>
+        <h3>Quão perto da matrícula</h3>
+        <p>Decaimento exponencial T = 0,5<sup>d/h</sup>. Contatos mais recentes pesam mais.
+          Meia-vida padrão: 30 dias.</p>
+      </div>
+      <div class="card">
+        <span class="tag">R — repetição</span>
+        <h3>Ganho decrescente ao repetir</h3>
+        <p>R = 1/√n. O segundo clique do mesmo canal/campanha vale menos que o primeiro,
+          o terceiro menos ainda.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXEMPLO DE JORNADA -->
+  <section>
+    <div class="kicker">Auditando uma matrícula</div>
+    <h2>A jornada de uma matrícula, contato a contato</h2>
+    <p class="sec-lede">Este lead teve 5 pontos de contato antes de se matricular. Veja como os 100%
+      do crédito — e da receita — se dividem entre eles. Este é o coração do modelo: toda matrícula
+      pode ser auditada linha a linha.</p>
+
+    <div class="journey-head">
+      <span class="id">Matrícula E00006</span>
+      <span class="val num">Valor: R$ 13.223,00 · matriculou em 03/05/2026</span>
+    </div>
+
+    <div class="stacked num">
+      <div style="flex-grow:17.48; background:var(--c-email)">17%</div>
+      <div style="flex-grow:16.75; background:var(--c-org)">17%</div>
+      <div style="flex-grow:12.28; background:var(--c-email)">12%</div>
+      <div style="flex-grow:19.88; background:var(--c-linkedin)">20%</div>
+      <div style="flex-grow:33.61; background:var(--c-tiktok)">34%</div>
+    </div>
+    <div class="sum-note">A soma dos créditos desta matrícula é exatamente 100%</div>
+
+    <div class="tbl-scroll">
+      <table class="num">
+        <thead>
+          <tr>
+            <th>Data · canal</th><th>Tipo</th><th>Posição</th><th>Dias</th>
+            <th>P</th><th>T</th><th>R</th><th>Score</th><th>Crédito</th><th>Receita atribuída</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="swatch" style="background:var(--c-email)"></span>29/03 · E-mail</td>
+            <td>performance</td><td class="pos">primeiro</td><td>33,6</td>
+            <td>1,30</td><td>0,460</td><td>1,00</td><td>0,598</td><td><b>17,48%</b></td><td>R$ 2.311,54</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:var(--c-org)"></span>08/04 · Orgânico</td>
+            <td>específica</td><td class="pos">meio</td><td>24,1</td>
+            <td>1,00</td><td>0,573</td><td>1,00</td><td>0,573</td><td><b>16,75%</b></td><td>R$ 2.214,55</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:var(--c-email)"></span>09/04 · E-mail</td>
+            <td>performance</td><td class="pos">meio</td><td>22,5</td>
+            <td>1,00</td><td>0,595</td><td>0,71</td><td>0,420</td><td><b>12,28%</b></td><td>R$ 1.624,27</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:var(--c-linkedin)"></span>15/04 · LinkedIn Ads</td>
+            <td>remarketing</td><td class="pos">meio</td><td>16,7</td>
+            <td>1,00</td><td>0,680</td><td>1,00</td><td>0,680</td><td><b>19,88%</b></td><td>R$ 2.628,49</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:var(--c-tiktok)"></span>27/04 · TikTok Ads</td>
+            <td>específica</td><td class="pos">último</td><td>5,3</td>
+            <td>1,30</td><td>0,885</td><td>1,00</td><td>1,150</td><td><b>33,61%</b></td><td>R$ 4.444,16</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sec-lede" style="margin-top:14px">Repare no 2º contato de E-mail: como é a repetição do canal,
+      R cai para 0,71 (1/√2) e ele leva menos crédito. E o TikTok, último e mais recente, concentra o maior peso.</p>
+  </section>
+
+  <!-- RESULTADO POR CANAL -->
+  <section>
+    <div class="kicker">Consolidação</div>
+    <h2>Eficiência por canal</h2>
+    <p class="sec-lede">Somando o crédito de todas as jornadas, cada canal ganha matrículas equivalentes,
+      receita atribuída e — cruzando com o investimento — CPA e ROAS. Ordenado por receita atribuída.</p>
+
+    <div class="tbl-scroll">
+      <table class="num">
+        <thead>
+          <tr>
+            <th>Canal</th><th>Investimento</th><th>Matríc. equiv.</th><th>Receita atribuída</th>
+            <th>CPA</th><th>ROAS</th><th>% iniciou</th><th>% finalizou</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:var(--c-email)"></span>E-mail</td>
+            <td>R$ 9.013,54</td><td>12,12</td><td>R$ 186.123,35</td><td>R$ 743,42</td>
+            <td class="roas">20,6×</td><td>37,5%</td><td>31,2%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--c-tiktok)"></span>TikTok Ads</td>
+            <td>R$ 10.720,45</td><td>12,82</td><td>R$ 154.856,48</td><td>R$ 836,43</td>
+            <td class="roas">14,4×</td><td>29,7%</td><td>43,2%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--c-linkedin)"></span>LinkedIn Ads</td>
+            <td>R$ 9.196,72</td><td>9,25</td><td>R$ 125.782,59</td><td>R$ 993,86</td>
+            <td class="roas">13,7×</td><td>41,4%</td><td>31,0%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--c-meta)"></span>Meta Ads</td>
+            <td>R$ 10.197,12</td><td>10,45</td><td>R$ 122.645,12</td><td>R$ 975,56</td>
+            <td class="roas">12,0×</td><td>42,3%</td><td>42,3%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--c-google)"></span>Google Ads</td>
+            <td>R$ 13.103,40</td><td>9,05</td><td>R$ 118.080,26</td><td>R$ 1.448,51</td>
+            <td class="roas">9,0×</td><td>28,6%</td><td>28,6%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--c-org)"></span>Orgânico</td>
+            <td>R$ 8.508,08</td><td>5,31</td><td>R$ 74.908,60</td><td>R$ 1.603,35</td>
+            <td class="roas">8,8×</td><td>20,0%</td><td>20,0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bars num" aria-hidden="true">
+      <div class="bar-row"><span>E-mail</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--c-email)"></div></div><span class="val">20,6×</span></div>
+      <div class="bar-row"><span>TikTok Ads</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:var(--c-tiktok)"></div></div><span class="val">14,4×</span></div>
+      <div class="bar-row"><span>LinkedIn Ads</span><div class="bar-track"><div class="bar-fill" style="width:66%;background:var(--c-linkedin)"></div></div><span class="val">13,7×</span></div>
+      <div class="bar-row"><span>Meta Ads</span><div class="bar-track"><div class="bar-fill" style="width:58%;background:var(--c-meta)"></div></div><span class="val">12,0×</span></div>
+      <div class="bar-row"><span>Google Ads</span><div class="bar-track"><div class="bar-fill" style="width:44%;background:var(--c-google)"></div></div><span class="val">9,0×</span></div>
+      <div class="bar-row"><span>Orgânico</span><div class="bar-track"><div class="bar-fill" style="width:43%;background:var(--c-org)"></div></div><span class="val">8,8×</span></div>
+    </div>
+    <p class="pos" style="margin-top:12px">Barras = ROAS atribuído por canal (receita atribuída ÷ investimento).</p>
+  </section>
+
+  <!-- POR TIPO DE CAMPANHA -->
+  <section>
+    <div class="kicker">Consolidação</div>
+    <h2>Por tipo de campanha</h2>
+    <p class="sec-lede">A mesma lógica aplicada aos tipos de campanha — útil para comparar
+      marca institucional, específica de curso, performance e remarketing.</p>
+    <div class="tbl-scroll">
+      <table class="num">
+        <thead><tr><th>Tipo de campanha</th><th>Matríc. equiv.</th><th>Receita atribuída</th><th>ROAS</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chip">remarketing</span></td><td>14,71</td><td>R$ 210.223,25</td><td class="roas">19,5×</td></tr>
+          <tr><td><span class="chip">institucional</span></td><td>15,45</td><td>R$ 203.955,94</td><td class="roas">18,2×</td></tr>
+          <tr><td><span class="chip">específica</span></td><td>14,94</td><td>R$ 194.963,71</td><td class="roas">7,5×</td></tr>
+          <tr><td><span class="chip">performance</span></td><td>13,90</td><td>R$ 173.253,49</td><td class="roas">13,6×</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- COMO VER AO VIVO -->
+  <section>
+    <div class="kicker">Sobre este exemplo</div>
+    <h2>Esta página é a explicação — o app é interativo</h2>
+    <p class="sec-lede">O que você vê aqui é um retrato fixo para apresentar ao time. A aplicação de verdade
+      é um app em Streamlit com 7 telas: importação de CSV/XLSX, ajuste de parâmetros, jornada individual,
+      resultados por canal e campanha, comparação de modelos e exportação.</p>
+
+    <div class="callout">
+      <strong>Por que os pesos não são “verdade”.</strong> Primeiro/último = 1,3, meia-vida = 30 dias etc.
+      são pontos de partida <em>configuráveis</em>. O objetivo é testar hipóteses de atribuição, auditar
+      cada matrícula e comparar a eficiência relativa dos canais — não cravar um número absoluto.
+    </div>
+
+    <p class="sec-lede" style="margin:24px 0 10px">Para rodar o app completo localmente:</p>
+    <pre>cd attribution_app
+pip install -r requirements.txt
+streamlit run app.py     # abre em http://localhost:8501</pre>
+    <p class="pos" style="margin-top:12px">Para virar um site público de verdade, dá para publicar esse mesmo
+      app no Streamlit Community Cloud (ou similar) conectando o repositório.</p>
+  </section>
+
+  <footer class="wrap" style="padding-left:0;padding-right:0">
+    Exemplo gerado sobre base fictícia de demonstração · 114 leads, 62 matrículas, 278 pontos de contato.
+    Todos os valores calculados pelo motor de atribuição do projeto.
+  </footer>
+
+</div>
+
+</body>
+</html>
