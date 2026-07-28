@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (attribution_app)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+attribution_app/*.db
+attribution_app/attribution.db

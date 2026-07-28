@@ -1,0 +1,229 @@
+period,channel,platform,campaign_name,campaign_type,investment
+2026-01,E-mail,CRM,E-mail - Agronegócio,especifica,57.01
+2026-01,E-mail,CRM,E-mail - Marca Institucional,institucional,85.88
+2026-01,E-mail,CRM,E-mail - Remarketing,remarketing,219.71
+2026-01,Google Ads,Google,Google Ads - Agronegócio,especifica,171.9
+2026-01,Google Ads,Google,Google Ads - Marca Institucional,institucional,335.84
+2026-01,Google Ads,Google,Google Ads - Performance,performance,172.86
+2026-01,Google Ads,Google,Google Ads - Remarketing,remarketing,373.3
+2026-01,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,175.37
+2026-01,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,208.88
+2026-01,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,86.9
+2026-01,Meta Ads,Meta,Meta Ads - Agronegócio,especifica,362.56
+2026-01,Meta Ads,Meta,Meta Ads - Data Science,especifica,61.27
+2026-01,Meta Ads,Meta,Meta Ads - MBA em Gestão,especifica,284.44
+2026-01,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,311.36
+2026-01,Meta Ads,Meta,Meta Ads - Marketing Digital,especifica,156.29
+2026-01,Meta Ads,Meta,Meta Ads - Performance,performance,171.84
+2026-01,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,295.17
+2026-01,Orgânico,Site,Orgânico - Engenharia de Software,especifica,145.92
+2026-01,Orgânico,Site,Orgânico - Marca Institucional,institucional,142.49
+2026-01,Orgânico,Site,Orgânico - Performance,performance,214.99
+2026-01,Orgânico,Site,Orgânico - Remarketing,remarketing,82.57
+2026-01,TikTok Ads,TikTok,TikTok Ads - Data Science,especifica,259.98
+2026-01,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,411.96
+2026-01,TikTok Ads,TikTok,TikTok Ads - Performance,performance,155.12
+2026-02,E-mail,CRM,E-mail - Data Science,especifica,223.96
+2026-02,E-mail,CRM,E-mail - Engenharia de Software,especifica,180.46
+2026-02,E-mail,CRM,E-mail - Marca Institucional,institucional,87.91
+2026-02,E-mail,CRM,E-mail - Performance,performance,391.32
+2026-02,E-mail,CRM,E-mail - Remarketing,remarketing,131.24
+2026-02,Google Ads,Google,Google Ads - Agronegócio,especifica,315.36
+2026-02,Google Ads,Google,Google Ads - Data Science,especifica,237.42
+2026-02,Google Ads,Google,Google Ads - Engenharia de Software,especifica,438.12
+2026-02,Google Ads,Google,Google Ads - MBA em Gestão,especifica,159.62
+2026-02,Google Ads,Google,Google Ads - Marca Institucional,institucional,292.43
+2026-02,Google Ads,Google,Google Ads - Marketing Digital,especifica,109.37
+2026-02,Google Ads,Google,Google Ads - Remarketing,remarketing,477.94
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - Engenharia de Software,especifica,262.07
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - MBA em Gestão,especifica,343.44
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,222.3
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marketing Digital,especifica,113.51
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,276.56
+2026-02,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,136.3
+2026-02,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,392.06
+2026-02,Meta Ads,Meta,Meta Ads - Marketing Digital,especifica,276.38
+2026-02,Meta Ads,Meta,Meta Ads - Performance,performance,366.95
+2026-02,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,381.38
+2026-02,Orgânico,Site,Orgânico - Data Science,especifica,350.53
+2026-02,Orgânico,Site,Orgânico - Engenharia de Software,especifica,78.5
+2026-02,Orgânico,Site,Orgânico - Marca Institucional,institucional,294.74
+2026-02,Orgânico,Site,Orgânico - Performance,performance,314.91
+2026-02,Orgânico,Site,Orgânico - Remarketing,remarketing,311.85
+2026-02,TikTok Ads,TikTok,TikTok Ads - Engenharia de Software,especifica,215.16
+2026-02,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,185.6
+2026-02,TikTok Ads,TikTok,TikTok Ads - Marketing Digital,especifica,146.41
+2026-02,TikTok Ads,TikTok,TikTok Ads - Performance,performance,358.19
+2026-02,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,360.74
+2026-03,E-mail,CRM,E-mail - Agronegócio,especifica,153.86
+2026-03,E-mail,CRM,E-mail - Data Science,especifica,152.98
+2026-03,E-mail,CRM,E-mail - Engenharia de Software,especifica,286.84
+2026-03,E-mail,CRM,E-mail - MBA em Gestão,especifica,265.29
+2026-03,E-mail,CRM,E-mail - Marca Institucional,institucional,277.58
+2026-03,E-mail,CRM,E-mail - Marketing Digital,especifica,233.14
+2026-03,E-mail,CRM,E-mail - Performance,performance,264.9
+2026-03,E-mail,CRM,E-mail - Remarketing,remarketing,231.78
+2026-03,Google Ads,Google,Google Ads - Agronegócio,especifica,223.46
+2026-03,Google Ads,Google,Google Ads - Data Science,especifica,491.11
+2026-03,Google Ads,Google,Google Ads - MBA em Gestão,especifica,394.21
+2026-03,Google Ads,Google,Google Ads - Marca Institucional,institucional,286.26
+2026-03,Google Ads,Google,Google Ads - Performance,performance,168.03
+2026-03,Google Ads,Google,Google Ads - Remarketing,remarketing,142.14
+2026-03,LinkedIn Ads,LinkedIn,LinkedIn Ads - Data Science,especifica,422.45
+2026-03,LinkedIn Ads,LinkedIn,LinkedIn Ads - Engenharia de Software,especifica,144.73
+2026-03,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,288.52
+2026-03,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,231.39
+2026-03,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,264.43
+2026-03,Meta Ads,Meta,Meta Ads - Data Science,especifica,254.98
+2026-03,Meta Ads,Meta,Meta Ads - MBA em Gestão,especifica,306.06
+2026-03,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,186.99
+2026-03,Meta Ads,Meta,Meta Ads - Marketing Digital,especifica,398.51
+2026-03,Meta Ads,Meta,Meta Ads - Performance,performance,275.42
+2026-03,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,209.66
+2026-03,Orgânico,Site,Orgânico - Agronegócio,especifica,239.36
+2026-03,Orgânico,Site,Orgânico - Data Science,especifica,77.12
+2026-03,Orgânico,Site,Orgânico - MBA em Gestão,especifica,305.73
+2026-03,Orgânico,Site,Orgânico - Marca Institucional,institucional,142.03
+2026-03,Orgânico,Site,Orgânico - Marketing Digital,especifica,328.91
+2026-03,Orgânico,Site,Orgânico - Performance,performance,318.12
+2026-03,Orgânico,Site,Orgânico - Remarketing,remarketing,320.19
+2026-03,TikTok Ads,TikTok,TikTok Ads - Agronegócio,especifica,205.88
+2026-03,TikTok Ads,TikTok,TikTok Ads - Data Science,especifica,387.99
+2026-03,TikTok Ads,TikTok,TikTok Ads - Engenharia de Software,especifica,262.49
+2026-03,TikTok Ads,TikTok,TikTok Ads - MBA em Gestão,especifica,328.84
+2026-03,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,270.95
+2026-03,TikTok Ads,TikTok,TikTok Ads - Performance,performance,218.67
+2026-03,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,406.12
+2026-04,E-mail,CRM,E-mail - Agronegócio,especifica,363.58
+2026-04,E-mail,CRM,E-mail - Data Science,especifica,229.1
+2026-04,E-mail,CRM,E-mail - Engenharia de Software,especifica,282.69
+2026-04,E-mail,CRM,E-mail - Marca Institucional,institucional,225.13
+2026-04,E-mail,CRM,E-mail - Marketing Digital,especifica,246.05
+2026-04,E-mail,CRM,E-mail - Performance,performance,184.94
+2026-04,E-mail,CRM,E-mail - Remarketing,remarketing,159.12
+2026-04,Google Ads,Google,Google Ads - Agronegócio,especifica,272.27
+2026-04,Google Ads,Google,Google Ads - Engenharia de Software,especifica,382.79
+2026-04,Google Ads,Google,Google Ads - Marca Institucional,institucional,463.75
+2026-04,Google Ads,Google,Google Ads - Marketing Digital,especifica,331.92
+2026-04,Google Ads,Google,Google Ads - Performance,performance,302.3
+2026-04,Google Ads,Google,Google Ads - Remarketing,remarketing,480.23
+2026-04,LinkedIn Ads,LinkedIn,LinkedIn Ads - Data Science,especifica,293.75
+2026-04,LinkedIn Ads,LinkedIn,LinkedIn Ads - Engenharia de Software,especifica,206.92
+2026-04,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,242.18
+2026-04,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,393.02
+2026-04,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,268.36
+2026-04,Meta Ads,Meta,Meta Ads - Agronegócio,especifica,421.63
+2026-04,Meta Ads,Meta,Meta Ads - Data Science,especifica,217.08
+2026-04,Meta Ads,Meta,Meta Ads - MBA em Gestão,especifica,356.41
+2026-04,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,259.94
+2026-04,Meta Ads,Meta,Meta Ads - Marketing Digital,especifica,88.54
+2026-04,Meta Ads,Meta,Meta Ads - Performance,performance,101.81
+2026-04,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,228.46
+2026-04,Orgânico,Site,Orgânico - Data Science,especifica,262.37
+2026-04,Orgânico,Site,Orgânico - MBA em Gestão,especifica,146.23
+2026-04,Orgânico,Site,Orgânico - Marca Institucional,institucional,65.37
+2026-04,Orgânico,Site,Orgânico - Marketing Digital,especifica,138.56
+2026-04,Orgânico,Site,Orgânico - Performance,performance,389.9
+2026-04,Orgânico,Site,Orgânico - Remarketing,remarketing,352.11
+2026-04,TikTok Ads,TikTok,TikTok Ads - Agronegócio,especifica,483.81
+2026-04,TikTok Ads,TikTok,TikTok Ads - Data Science,especifica,258.23
+2026-04,TikTok Ads,TikTok,TikTok Ads - Engenharia de Software,especifica,372.41
+2026-04,TikTok Ads,TikTok,TikTok Ads - MBA em Gestão,especifica,375.72
+2026-04,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,203.61
+2026-04,TikTok Ads,TikTok,TikTok Ads - Marketing Digital,especifica,126.92
+2026-04,TikTok Ads,TikTok,TikTok Ads - Performance,performance,378.94
+2026-04,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,319.2
+2026-05,E-mail,CRM,E-mail - Agronegócio,especifica,69.62
+2026-05,E-mail,CRM,E-mail - Engenharia de Software,especifica,71.81
+2026-05,E-mail,CRM,E-mail - MBA em Gestão,especifica,240.43
+2026-05,E-mail,CRM,E-mail - Marca Institucional,institucional,117.96
+2026-05,E-mail,CRM,E-mail - Marketing Digital,especifica,55.84
+2026-05,E-mail,CRM,E-mail - Performance,performance,346.88
+2026-05,E-mail,CRM,E-mail - Remarketing,remarketing,298.26
+2026-05,Google Ads,Google,Google Ads - Agronegócio,especifica,303.25
+2026-05,Google Ads,Google,Google Ads - Data Science,especifica,242.33
+2026-05,Google Ads,Google,Google Ads - Engenharia de Software,especifica,255.09
+2026-05,Google Ads,Google,Google Ads - Marca Institucional,institucional,468.73
+2026-05,Google Ads,Google,Google Ads - Marketing Digital,especifica,361.48
+2026-05,Google Ads,Google,Google Ads - Performance,performance,364.42
+2026-05,Google Ads,Google,Google Ads - Remarketing,remarketing,355.53
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Data Science,especifica,125.05
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Engenharia de Software,especifica,146.35
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,503.98
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marketing Digital,especifica,149.4
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,349.05
+2026-05,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,440.15
+2026-05,Meta Ads,Meta,Meta Ads - Data Science,especifica,250.58
+2026-05,Meta Ads,Meta,Meta Ads - Engenharia de Software,especifica,93.25
+2026-05,Meta Ads,Meta,Meta Ads - MBA em Gestão,especifica,133.92
+2026-05,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,599.53
+2026-05,Meta Ads,Meta,Meta Ads - Marketing Digital,especifica,412.66
+2026-05,Meta Ads,Meta,Meta Ads - Performance,performance,310.28
+2026-05,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,394.55
+2026-05,Orgânico,Site,Orgânico - Engenharia de Software,especifica,343.06
+2026-05,Orgânico,Site,Orgânico - MBA em Gestão,especifica,365.52
+2026-05,Orgânico,Site,Orgânico - Marca Institucional,institucional,314.54
+2026-05,Orgânico,Site,Orgânico - Marketing Digital,especifica,68.67
+2026-05,Orgânico,Site,Orgânico - Performance,performance,112.3
+2026-05,Orgânico,Site,Orgânico - Remarketing,remarketing,160.44
+2026-05,TikTok Ads,TikTok,TikTok Ads - Agronegócio,especifica,183.56
+2026-05,TikTok Ads,TikTok,TikTok Ads - Engenharia de Software,especifica,121.88
+2026-05,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,344.65
+2026-05,TikTok Ads,TikTok,TikTok Ads - Marketing Digital,especifica,251.92
+2026-05,TikTok Ads,TikTok,TikTok Ads - Performance,performance,336.25
+2026-05,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,436.62
+2026-06,E-mail,CRM,E-mail - Agronegócio,especifica,341.11
+2026-06,E-mail,CRM,E-mail - Engenharia de Software,especifica,342.15
+2026-06,E-mail,CRM,E-mail - MBA em Gestão,especifica,238.28
+2026-06,E-mail,CRM,E-mail - Marca Institucional,institucional,295.77
+2026-06,E-mail,CRM,E-mail - Performance,performance,333.82
+2026-06,E-mail,CRM,E-mail - Remarketing,remarketing,122.61
+2026-06,Google Ads,Google,Google Ads - Agronegócio,especifica,265.99
+2026-06,Google Ads,Google,Google Ads - MBA em Gestão,especifica,358.96
+2026-06,Google Ads,Google,Google Ads - Marca Institucional,institucional,366.96
+2026-06,Google Ads,Google,Google Ads - Performance,performance,295.6
+2026-06,Google Ads,Google,Google Ads - Remarketing,remarketing,127.24
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Agronegócio,especifica,139.48
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Engenharia de Software,especifica,269.13
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - MBA em Gestão,especifica,213.06
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marca Institucional,institucional,199.94
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Marketing Digital,especifica,324.37
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,157.91
+2026-06,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,225.44
+2026-06,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,118.44
+2026-06,Meta Ads,Meta,Meta Ads - Performance,performance,304.01
+2026-06,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,214.65
+2026-06,Orgânico,Site,Orgânico - Agronegócio,especifica,333.23
+2026-06,Orgânico,Site,Orgânico - Marca Institucional,institucional,251.59
+2026-06,Orgânico,Site,Orgânico - Performance,performance,189.77
+2026-06,Orgânico,Site,Orgânico - Remarketing,remarketing,138.4
+2026-06,TikTok Ads,TikTok,TikTok Ads - MBA em Gestão,especifica,203.36
+2026-06,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,255.87
+2026-06,TikTok Ads,TikTok,TikTok Ads - Marketing Digital,especifica,408.24
+2026-06,TikTok Ads,TikTok,TikTok Ads - Performance,performance,487.76
+2026-06,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,221.17
+2026-07,E-mail,CRM,E-mail - Marca Institucional,institucional,383.89
+2026-07,E-mail,CRM,E-mail - Marketing Digital,especifica,59.99
+2026-07,E-mail,CRM,E-mail - Performance,performance,372.82
+2026-07,E-mail,CRM,E-mail - Remarketing,remarketing,387.83
+2026-07,Google Ads,Google,Google Ads - Marca Institucional,institucional,221.69
+2026-07,Google Ads,Google,Google Ads - Performance,performance,385.99
+2026-07,Google Ads,Google,Google Ads - Remarketing,remarketing,207.51
+2026-07,LinkedIn Ads,LinkedIn,LinkedIn Ads - Data Science,especifica,424.36
+2026-07,LinkedIn Ads,LinkedIn,LinkedIn Ads - MBA em Gestão,especifica,333.83
+2026-07,LinkedIn Ads,LinkedIn,LinkedIn Ads - Remarketing,remarketing,253.84
+2026-07,Meta Ads,Meta,Meta Ads - Agronegócio,especifica,60.75
+2026-07,Meta Ads,Meta,Meta Ads - Marca Institucional,institucional,372.98
+2026-07,Meta Ads,Meta,Meta Ads - Performance,performance,86.21
+2026-07,Meta Ads,Meta,Meta Ads - Remarketing,remarketing,137.85
+2026-07,Orgânico,Site,Orgânico - Agronegócio,especifica,135.66
+2026-07,Orgânico,Site,Orgânico - Engenharia de Software,especifica,345.98
+2026-07,Orgânico,Site,Orgânico - Marca Institucional,institucional,217.07
+2026-07,Orgânico,Site,Orgânico - Performance,performance,214.78
+2026-07,Orgânico,Site,Orgânico - Remarketing,remarketing,294.57
+2026-07,TikTok Ads,TikTok,TikTok Ads - Marca Institucional,institucional,310.69
+2026-07,TikTok Ads,TikTok,TikTok Ads - Performance,performance,349.37
+2026-07,TikTok Ads,TikTok,TikTok Ads - Remarketing,remarketing,116.17
+2026-08,LinkedIn Ads,LinkedIn,LinkedIn Ads - Performance,performance,360.3
+2026-08,Meta Ads,Meta,Meta Ads - Engenharia de Software,especifica,342.27
+2026-02,Google Ads,Google,Google Ads - Campanha Descontinuada,performance,1500.0
